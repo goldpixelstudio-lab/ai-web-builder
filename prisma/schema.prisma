@@ -1,0 +1,81 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"] 
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
+}
+
+model Workspace {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model Project {
+  id          String       @id @default(uuid())
+  workspaceId String
+  name        String       
+  platform    String       @default("Joomla / SP Page Builder")
+  status      String       @default("STAGE_1_VISUALIZATION")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  generations Generation[]
+  chatLogs    ChatLog[]
+  aiContexts  AiContext[]
+}
+
+model Generation {
+  id        String     @id @default(uuid())
+  projectId String
+  stage     String
+  status    String     @default("IN_PROGRESS")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  documents Document[]
+}
+
+model Document {
+  id           String     @id @default(uuid())
+  generationId String
+  docType      Int        
+  title        String     
+  payload      Json?      
+  fileUrl      String?    
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  generation   Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+
+  @@index([docType])
+}
+
+model ChatLog {
+  id            String   @id @default(uuid())
+  projectId     String
+  sender        String
+  message       String   @db.Text
+  telegramMsgId String?  @unique
+  createdAt     DateTime @default(now())
+
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model AiContext {
+  id        String                 @id @default(uuid())
+  projectId String
+  content   String                 @db.Text
+  embedding Unsupported("vector(1536)")? 
+
+  project   Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
