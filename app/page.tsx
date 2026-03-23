@@ -5,7 +5,7 @@ import { useState } from "react";
 export default function Home() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([
-    { role: "ai", text: "Witaj w wersji 6.0! Visual Engine aktywny. Dodaję teraz ikony, zdjęcia i grafiki. Co dzisiaj projektujemy?" }
+    { role: "ai", text: "Witaj w wersji 8.0! Kreator Creative Director aktywowany. Koniec z nudnymi układami. Budujemy projekt, który powala." }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   
