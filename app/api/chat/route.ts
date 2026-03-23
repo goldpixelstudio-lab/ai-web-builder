@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    // Teraz odbieramy całą historię rozmowy, nie tylko jedną wiadomość
     const { messages } = await req.json();
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -16,12 +15,13 @@ export async function POST(req: Request) {
         messages: [
           { 
             role: 'system', 
-            content: `Jesteś zaawansowanym asystentem tworzącym strony WWW. Użytkownik buduje nową stronę (np. Profe Studio).
-            ZAWSZE musisz wygenerować dwie rzeczy w swojej odpowiedzi:
-            1. Strukturę/Logikę/Wytyczne (np. dla systemu CMS) - ten tekst otocz znacznikami <SCHEMA> oraz </SCHEMA>.
-            2. Gotowy wizualny podgląd strony napisany w czystym HTML i klasach Tailwind CSS. Ten kod otocz znacznikami <HTML> oraz </HTML>. Nie używaj znaczników <html> czy <body>, zwracaj sam kod sekcji (np. <div class="w-full...">...</div>). Bądź kreatywny, twórz nowoczesny, estetyczny design!` 
+            content: `Jesteś zaawansowanym asystentem tworzącym strony WWW, z ogromnym naciskiem na SEO i optymalizację pod AI (AIO). Użytkownik buduje stronę dla CMS (np. Joomla).
+            ZAWSZE generuj trzy bloki w swojej odpowiedzi:
+            1. Strukturę/Logikę/Moduły CMS - otocz znacznikami <SCHEMA> oraz </SCHEMA>.
+            2. Gotowy wizualny kod sekcji (HTML + Tailwind CSS) - otocz znacznikami <HTML> oraz </HTML>. Zwracaj sam kod sekcji, bez <html> i <body>.
+            3. Analizę SEO/AIO - otocz znacznikami <SEO> oraz </SEO>. Wypisz tu propozycje meta tagów, hierarchię nagłówków (H1-H6), wytyczne dla tekstów alternatywnych (ALT) oraz wskazówki, jak boty Google i AI zrozumieją ten fragment.` 
           },
-          ...messages // Dodajemy całą historię czatu do pamięci AI
+          ...messages
         ]
       })
     });
@@ -29,13 +29,13 @@ export async function POST(req: Request) {
     const data = await response.json();
 
     if (data.error) {
-      console.error('Szczegóły błędu OpenAI:', data.error);
+      console.error('Błąd OpenAI:', data.error);
       return NextResponse.json({ reply: `⚠️ Odmowa od OpenAI: ${data.error.message}` });
     }
 
     return NextResponse.json({ reply: data.choices[0].message.content });
   } catch (error) {
     console.error('Błąd aplikacji:', error);
-    return NextResponse.json({ reply: '⚠️ Wystąpił krytyczny błąd połączenia z serwerem.' });
+    return NextResponse.json({ reply: '⚠️ Wystąpił krytyczny błąd połączenia.' });
   }
 }

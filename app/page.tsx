@@ -5,12 +5,17 @@ import { useState } from "react";
 export default function Home() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([
-    { role: "ai", text: "Witaj w wersji 2.0! Jestem gotowy. Pamiętam naszą rozmowę i potrafię rysować projekty na żywo. Co dzisiaj zbudujemy?" }
+    { role: "ai", text: "Witaj w wersji 3.0! Moduł analizy SEO i AIO został aktywowany. Co dzisiaj projektujemy?" }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   
+  // Stany dla wygenerowanych treści
   const [schemaContent, setSchemaContent] = useState<string | null>(null);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [seoContent, setSeoContent] = useState<string | null>(null);
+  
+  // Stan dla aktywnej zakładki (preview, code, seo)
+  const [activeTab, setActiveTab] = useState<"preview" | "code" | "seo">("preview");
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -38,24 +43,37 @@ export default function Home() {
       
       if (data.reply) {
         let aiText = data.reply;
+        let hasUpdates = false;
         
         // Wyciągamy SCHEMA
         const schemaMatch = aiText.match(/<SCHEMA>([\s\S]*?)<\/SCHEMA>/);
         if (schemaMatch) {
           setSchemaContent(schemaMatch[1].trim());
           aiText = aiText.replace(/<SCHEMA>[\s\S]*?<\/SCHEMA>/, ""); 
+          hasUpdates = true;
         }
 
-        // Wyciągamy HTML i brutalnie czyścimy ze śmieci AI
+        // Wyciągamy SEO
+        const seoMatch = aiText.match(/<SEO>([\s\S]*?)<\/SEO>/);
+        if (seoMatch) {
+          setSeoContent(seoMatch[1].trim());
+          aiText = aiText.replace(/<SEO>[\s\S]*?<\/SEO>/, "");
+          hasUpdates = true;
+        }
+
+        // Wyciągamy HTML
         const htmlMatch = aiText.match(/<HTML>([\s\S]*?)<\/HTML>/);
         if (htmlMatch) {
           let rawHtml = htmlMatch[1].trim();
           rawHtml = rawHtml.replace(/```html/gi, "").replace(/```/g, "").trim();
-          // Odkurzacz: usuwamy tagi html/body jeśli AI uparcie je dodało
           rawHtml = rawHtml.replace(/<\/?html[^>]*>/gi, "").replace(/<\/?body[^>]*>/gi, "").replace(/<\/?head[^>]*>[\s\S]*?<\/head>/gi, "").trim();
-          
           setHtmlContent(rawHtml);
-          aiText = aiText.replace(/<HTML>[\s\S]*?<\/HTML>/, "\n\n🚀 [Wygenerowano nową wizualizację na żywo i zaktualizowano schemat]");
+          aiText = aiText.replace(/<HTML>[\s\S]*?<\/HTML>/, "");
+          hasUpdates = true;
+        }
+        
+        if (hasUpdates) {
+          aiText += "\n\n🚀 [Wygenerowano: Wizualizację, Kod HTML oraz Raport SEO]";
         }
         
         setMessages((prev) => [...prev, { role: "ai", text: aiText.trim() }]);
@@ -88,7 +106,7 @@ export default function Home() {
           {isLoading && (
             <div className="flex justify-start">
               <div className="bg-blue-600 text-white p-3 rounded-2xl rounded-tl-none max-w-[85%] shadow-sm animate-pulse text-sm">
-                Generuję układ i renderuję kod...
+                Analizuję SEO, generuję kod i widok...
               </div>
             </div>
           )}
@@ -102,7 +120,7 @@ export default function Home() {
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
               className="w-full bg-gray-50 border border-gray-300 rounded-xl py-2 px-3 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
               rows={2}
-              placeholder="Np. Zbuduj sekcję Hero dla Profe Studio..."
+              placeholder="Np. Zbuduj zoptymalizowaną sekcję Usługi..."
             ></textarea>
             <button 
               onClick={sendMessage}
@@ -118,57 +136,89 @@ export default function Home() {
 
         <div className="h-1/3 min-h-[200px] bg-slate-900 flex flex-col shrink-0">
           <div className="bg-slate-950 text-slate-400 text-xs px-4 py-2 uppercase tracking-wider font-semibold border-b border-slate-800">
-            Struktura / Moduły Joomla
+            Struktura / CMS / Wytyczne
           </div>
           <div className="p-4 overflow-y-auto flex-1 font-mono text-xs text-green-400 whitespace-pre-wrap">
-            {schemaContent ? schemaContent : "// Tutaj pojawi się schemat krok po kroku..."}
+            {schemaContent ? schemaContent : "// Oczekiwanie na generowanie schematu..."}
           </div>
         </div>
       </div>
 
-      {/* PRAWA KOLUMNA (Silnik iFrame z przepustką) */}
-      <div className="flex-1 bg-gray-200 flex flex-col h-full overflow-hidden">
-        <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm shrink-0">
-          <div className="flex space-x-2">
-            <div className="w-3 h-3 rounded-full bg-red-400"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-            <div className="w-3 h-3 rounded-full bg-green-400"></div>
-          </div>
-          <div className="text-xs font-medium text-gray-500 bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200">Wizualizacja Live (Tailwind CSS)</div>
-          <div className="w-12"></div>
+      {/* PRAWA KOLUMNA (Zakładki) */}
+      <div className="flex-1 bg-gray-100 flex flex-col h-full overflow-hidden">
+        
+        {/* Pasek Zakładek */}
+        <div className="h-12 bg-gray-50 border-b border-gray-200 flex items-end px-4 shadow-sm shrink-0 space-x-1">
+          <button 
+            onClick={() => setActiveTab("preview")}
+            className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors border-t border-x ${activeTab === "preview" ? "bg-white text-blue-600 border-gray-200" : "bg-gray-50 text-gray-500 border-transparent hover:bg-gray-200"}`}
+          >
+            👁️ Wizualizacja
+          </button>
+          <button 
+            onClick={() => setActiveTab("code")}
+            className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors border-t border-x ${activeTab === "code" ? "bg-white text-blue-600 border-gray-200" : "bg-gray-50 text-gray-500 border-transparent hover:bg-gray-200"}`}
+          >
+            💻 Czysty Kod
+          </button>
+          <button 
+            onClick={() => setActiveTab("seo")}
+            className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors border-t border-x ${activeTab === "seo" ? "bg-white text-blue-600 border-gray-200" : "bg-gray-50 text-gray-500 border-transparent hover:bg-gray-200"}`}
+          >
+            🚀 Audyt SEO / AIO
+          </button>
         </div>
         
-        <div className="flex-1 w-full bg-white relative">
-          {htmlContent ? (
-            <iframe 
-              className="w-full h-full border-none absolute top-0 left-0"
-              sandbox="allow-scripts allow-same-origin"
-              srcDoc={`
-                <!DOCTYPE html>
-                <html>
-                  <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <script src="https://cdn.tailwindcss.com"></script>
-                    <style>
-                      /* Zabezpieczenie na wypadek wolniejszego ładowania */
-                      body { font-family: ui-sans-serif, system-ui, sans-serif; }
-                    </style>
-                  </head>
-                  <body>
-                    ${htmlContent}
-                  </body>
-                </html>
-              `}
-            />
-          ) : (
-            <div className="h-full w-full flex flex-col items-center justify-center text-gray-400">
-              <svg className="h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <p className="text-lg font-medium text-gray-500">Miejsce na wygenerowaną stronę</p>
+        {/* Obszar roboczy dla zakładek */}
+        <div className="flex-1 w-full relative bg-white">
+          
+          {/* Zakładka 1: Preview */}
+          {activeTab === "preview" && (
+            htmlContent ? (
+              <iframe 
+                className="w-full h-full border-none absolute top-0 left-0"
+                sandbox="allow-scripts allow-same-origin"
+                srcDoc={`
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <meta charset="UTF-8">
+                      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                      <script src="https://cdn.tailwindcss.com"></script>
+                      <style>body { font-family: ui-sans-serif, system-ui, sans-serif; }</style>
+                    </head>
+                    <body>${htmlContent}</body>
+                  </html>
+                `}
+              />
+            ) : (
+              <div className="h-full w-full flex flex-col items-center justify-center text-gray-400">
+                <p>Brak wygenerowanego podglądu</p>
+              </div>
+            )
+          )}
+
+          {/* Zakładka 2: Czysty Kod */}
+          {activeTab === "code" && (
+            <div className="h-full w-full bg-slate-900 p-6 overflow-y-auto">
+              <pre className="font-mono text-sm text-gray-300 whitespace-pre-wrap">
+                {htmlContent ? htmlContent : "// Kod pojawi się tutaj..."}
+              </pre>
             </div>
           )}
+
+          {/* Zakładka 3: SEO / AIO */}
+          {activeTab === "seo" && (
+            <div className="h-full w-full p-8 overflow-y-auto bg-gray-50">
+              <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">Raport Optymalizacji SEO & AIO</h2>
+                <div className="prose prose-blue max-w-none whitespace-pre-wrap text-gray-700">
+                  {seoContent ? seoContent : "Brak danych SEO. Poproś asystenta o wygenerowanie sekcji."}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
