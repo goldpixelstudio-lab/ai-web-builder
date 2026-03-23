@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const { message } = await req.json();
+    // Teraz odbieramy całą historię rozmowy, nie tylko jedną wiadomość
+    const { messages } = await req.json();
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -15,16 +16,18 @@ export async function POST(req: Request) {
         messages: [
           { 
             role: 'system', 
-            content: 'Jesteś ekspertem web developmentu i UX/UI. Pomagasz projektować profesjonalne, zoptymalizowane pod SEO struktury stron. Skupiasz się na systemach takich jak Joomla + SP Page Builder. Zawsze odpowiadaj zwięźle. WAŻNE: Kiedy proponujesz strukturę strony lub schemat menu (np. 3 warianty), zawsze otaczaj ten wizualny element znacznikami <WIZUALIZACJA> oraz </WIZUALIZACJA>.' 
+            content: `Jesteś zaawansowanym asystentem tworzącym strony WWW. Użytkownik buduje nową stronę (np. Profe Studio).
+            ZAWSZE musisz wygenerować dwie rzeczy w swojej odpowiedzi:
+            1. Strukturę/Logikę/Wytyczne (np. dla systemu CMS) - ten tekst otocz znacznikami <SCHEMA> oraz </SCHEMA>.
+            2. Gotowy wizualny podgląd strony napisany w czystym HTML i klasach Tailwind CSS. Ten kod otocz znacznikami <HTML> oraz </HTML>. Nie używaj znaczników <html> czy <body>, zwracaj sam kod sekcji (np. <div class="w-full...">...</div>). Bądź kreatywny, twórz nowoczesny, estetyczny design!` 
           },
-          { role: 'user', content: message }
+          ...messages // Dodajemy całą historię czatu do pamięci AI
         ]
       })
     });
 
     const data = await response.json();
 
-    // TUTAJ JEST MAGIA: Jeśli OpenAI odrzuci prośbę, wyświetlimy powód na czacie!
     if (data.error) {
       console.error('Szczegóły błędu OpenAI:', data.error);
       return NextResponse.json({ reply: `⚠️ Odmowa od OpenAI: ${data.error.message}` });
