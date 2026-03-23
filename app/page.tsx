@@ -9,7 +9,6 @@ export default function Home() {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Dwa osobne stany: na schemat i na czysty HTML
   const [schemaContent, setSchemaContent] = useState<string | null>(null);
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
 
@@ -19,13 +18,11 @@ export default function Home() {
     const userMessage = input;
     setInput("");
     
-    // Zapisujemy nową wiadomość
     const updatedMessages = [...messages, { role: "user", text: userMessage }];
     setMessages(updatedMessages);
     setIsLoading(true);
 
     try {
-      // Tłumaczymy historię czatu na format zrozumiały dla OpenAI
       const apiMessages = updatedMessages.map(msg => ({
         role: msg.role === "ai" ? "assistant" : "user",
         content: msg.text
@@ -34,7 +31,7 @@ export default function Home() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }), // Wysyłamy całą pamięć!
+        body: JSON.stringify({ messages: apiMessages }),
       });
       
       const data = await res.json();
@@ -42,18 +39,21 @@ export default function Home() {
       if (data.reply) {
         let aiText = data.reply;
         
-        // Wyciągamy SCHEMA do dolnego, lewego okienka
+        // Wyciągamy SCHEMA
         const schemaMatch = aiText.match(/<SCHEMA>([\s\S]*?)<\/SCHEMA>/);
         if (schemaMatch) {
           setSchemaContent(schemaMatch[1].trim());
-          aiText = aiText.replace(/<SCHEMA>[\s\S]*?<\/SCHEMA>/, ""); // Usuwamy z czatu
+          aiText = aiText.replace(/<SCHEMA>[\s\S]*?<\/SCHEMA>/, ""); 
         }
 
-        // Wyciągamy HTML do prawego, dużego okienka
+        // Wyciągamy HTML i czyścimy go ze śmieci formatowania AI (Markdown)
         const htmlMatch = aiText.match(/<HTML>([\s\S]*?)<\/HTML>/);
         if (htmlMatch) {
-          setHtmlContent(htmlMatch[1].trim());
-          aiText = aiText.replace(/<HTML>[\s\S]*?<\/HTML>/, "\n\n🚀 [Wygenerowano nową wizualizację strony i zaktualizowano schemat]");
+          let rawHtml = htmlMatch[1].trim();
+          // Usuwamy narzut markdowna, jeśli AI go dodało
+          rawHtml = rawHtml.replace(/^```html/i, "").replace(/```/g, "").trim();
+          setHtmlContent(rawHtml);
+          aiText = aiText.replace(/<HTML>[\s\S]*?<\/HTML>/, "\n\n🚀 [Wygenerowano nową wizualizację na żywo i zaktualizowano schemat]");
         }
         
         setMessages((prev) => [...prev, { role: "ai", text: aiText.trim() }]);
@@ -69,14 +69,13 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-gray-100 font-sans text-gray-900 overflow-hidden">
       
-      {/* LEWA KOLUMNA (Podzielona na pół) */}
+      {/* LEWA KOLUMNA */}
       <div className="w-1/3 min-w-[350px] max-w-[450px] bg-white border-r border-gray-200 flex flex-col shadow-xl z-10">
         
-        <div className="p-4 border-b border-gray-100 bg-white">
+        <div className="p-4 border-b border-gray-100 bg-white shrink-0">
           <h1 className="text-xl font-bold text-gray-800">Profe Studio Builder</h1>
         </div>
 
-        {/* GÓRA: Czat (Zajmuje dostępną przestrzeń, elastyczny) */}
         <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50 border-b border-gray-200">
           {messages.map((msg, index) => (
             <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -88,14 +87,13 @@ export default function Home() {
           {isLoading && (
             <div className="flex justify-start">
               <div className="bg-blue-600 text-white p-3 rounded-2xl rounded-tl-none max-w-[85%] shadow-sm animate-pulse text-sm">
-                Generuję układ i wizualizację...
+                Generuję układ i renderuję kod...
               </div>
             </div>
           )}
         </div>
 
-        {/* POLE TEKSTOWE */}
-        <div className="p-3 bg-white border-b border-gray-200">
+        <div className="p-3 bg-white border-b border-gray-200 shrink-0">
           <div className="relative">
             <textarea 
               value={input}
@@ -110,15 +108,14 @@ export default function Home() {
               disabled={isLoading}
               className={`absolute bottom-2 right-2 p-1.5 rounded-lg transition-colors shadow-sm ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+              <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
               </svg>
             </button>
           </div>
         </div>
 
-        {/* DÓŁ: Okno Schematu (Stała wysokość, np. 30% lewego panelu) */}
-        <div className="h-1/3 min-h-[200px] bg-slate-900 flex flex-col">
+        <div className="h-1/3 min-h-[200px] bg-slate-900 flex flex-col shrink-0">
           <div className="bg-slate-950 text-slate-400 text-xs px-4 py-2 uppercase tracking-wider font-semibold border-b border-slate-800">
             Struktura / Moduły Joomla
           </div>
@@ -128,25 +125,36 @@ export default function Home() {
         </div>
       </div>
 
-      {/* PRAWA KOLUMNA (Duża Tablica renderująca na żywo) */}
-      <div className="flex-1 bg-gray-200 flex flex-col h-full">
+      {/* PRAWA KOLUMNA (Silnik iFrame) */}
+      <div className="flex-1 bg-gray-200 flex flex-col h-full overflow-hidden">
         <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm shrink-0">
           <div className="flex space-x-2">
             <div className="w-3 h-3 rounded-full bg-red-400"></div>
             <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
             <div className="w-3 h-3 rounded-full bg-green-400"></div>
           </div>
-          <div className="text-xs font-medium text-gray-500 bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200">Wizualizacja Live</div>
+          <div className="text-xs font-medium text-gray-500 bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200">Wizualizacja Live (Wbudowany Tailwind)</div>
           <div className="w-12"></div>
         </div>
         
-        {/* Płótno z renderowaniem HTML */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 w-full bg-white relative">
           {htmlContent ? (
-            // Silnik renderujący na żywo to, co zwraca AI
-            <div 
-              className="w-full min-h-full bg-white"
-              dangerouslySetInnerHTML={{ __html: htmlContent }} 
+            // MAGIA: Prawdziwa mini-przeglądarka ładująca style z CDN!
+            <iframe 
+              className="w-full h-full border-none absolute top-0 left-0"
+              srcDoc={`
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+                  </head>
+                  <body class="antialiased">
+                    ${htmlContent}
+                  </body>
+                </html>
+              `}
             />
           ) : (
             <div className="h-full w-full flex flex-col items-center justify-center text-gray-400">
