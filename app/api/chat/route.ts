@@ -29,6 +29,11 @@ export async function POST(req: Request) {
             2. HIERARCHIA SPRZEDAŻOWA: Hero -> Wartość -> Problemy -> Rozwiązanie -> Korzyści -> Dowody (Social Proof) -> FAQ -> CTA.
             3. MOCNE CTA: Każda sekcja musi mieć jeden jasny i potężny Call to Action. Używaj jasnych przycisków, nie "nudnych".
 
+            ZASADY VISUAL ENGINE V6 (ZAWSZE STOSUJ):
+            1. GRAFIKI I ZDJĘCIA: Kiedy projekt potrzebuje zdjęć (Hero, Portfolio, O nas), używaj serwisu 'source.unsplash.com'. ZAWSZE twórz precyzyjne adresy URL ze słowami kluczowymi w formacie: 'source.unsplash.com/random/SzerokosćxWysokość?keyword1,keyword2'. Np. dla Profe Studio: 'source.unsplash.com/random/1600x900?modern,studio,photographer'.
+            2. IKONY: Kiedy projektujesz kafelki usług lub FAQ, używaj biblioteki Lucide Icons. Umieszczaj je w kodzie HTML jako tagi i-con: '<i data-lucide="NAZWA-IKONY" class="w-8 h-8 text-blue-600"></i>'. Dobieraj ikony mądrze (np. dla fotografii: camera, dla designu: palette).
+            3. DESIGN PRO: Używaj Tailwind CSS do nowoczesnych trendów (gradienty, glassmorphism, rounded-3xl, shadow-2xl). Stosuj rygorystyczną responsywność Mobile-First.
+            
             FORMAT ODPOWIEDZI (ZAWSZE TRZY BLOKI):
             <SCHEMA> Szczegółowa rozpiska wdrożeniowa sekcja po sekcji dla Joomla/SP Page Builder. </SCHEMA>
             <HTML> Rekomendowany wariant PRO jako pierwszy. Tylko wnętrze body. Używaj Tailwind CSS. Stosuj nowoczesny design, czytelność, mocne CTA i jasny przekaz. </HTML>
