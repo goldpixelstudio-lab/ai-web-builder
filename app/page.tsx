@@ -5,7 +5,7 @@ import { useState } from "react";
 export default function Home() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([
-    { role: "ai", text: "Witaj w wersji 8.0! Kreator Creative Director aktywowany. Koniec z nudnymi układami. Budujemy projekt, który powala." }
+    { role: "ai", text: "Witaj w wersji 11.0! Kreator Creative Director aktywowany. Koniec z nudnymi układami. Budujemy projekt, który powala." }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   
