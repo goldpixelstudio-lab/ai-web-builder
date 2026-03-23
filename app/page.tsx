@@ -46,12 +46,14 @@ export default function Home() {
           aiText = aiText.replace(/<SCHEMA>[\s\S]*?<\/SCHEMA>/, ""); 
         }
 
-        // Wyciągamy HTML i czyścimy go ze śmieci formatowania AI (Markdown)
+        // Wyciągamy HTML i brutalnie czyścimy ze śmieci AI
         const htmlMatch = aiText.match(/<HTML>([\s\S]*?)<\/HTML>/);
         if (htmlMatch) {
           let rawHtml = htmlMatch[1].trim();
-          // Usuwamy narzut markdowna, jeśli AI go dodało
-          rawHtml = rawHtml.replace(/^```html/i, "").replace(/```/g, "").trim();
+          rawHtml = rawHtml.replace(/```html/gi, "").replace(/```/g, "").trim();
+          // Odkurzacz: usuwamy tagi html/body jeśli AI uparcie je dodało
+          rawHtml = rawHtml.replace(/<\/?html[^>]*>/gi, "").replace(/<\/?body[^>]*>/gi, "").replace(/<\/?head[^>]*>[\s\S]*?<\/head>/gi, "").trim();
+          
           setHtmlContent(rawHtml);
           aiText = aiText.replace(/<HTML>[\s\S]*?<\/HTML>/, "\n\n🚀 [Wygenerowano nową wizualizację na żywo i zaktualizowano schemat]");
         }
@@ -71,7 +73,6 @@ export default function Home() {
       
       {/* LEWA KOLUMNA */}
       <div className="w-1/3 min-w-[350px] max-w-[450px] bg-white border-r border-gray-200 flex flex-col shadow-xl z-10">
-        
         <div className="p-4 border-b border-gray-100 bg-white shrink-0">
           <h1 className="text-xl font-bold text-gray-800">Profe Studio Builder</h1>
         </div>
@@ -108,7 +109,7 @@ export default function Home() {
               disabled={isLoading}
               className={`absolute bottom-2 right-2 p-1.5 rounded-lg transition-colors shadow-sm ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
             >
-              <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
               </svg>
             </button>
@@ -125,7 +126,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* PRAWA KOLUMNA (Silnik iFrame) */}
+      {/* PRAWA KOLUMNA (Silnik iFrame z przepustką) */}
       <div className="flex-1 bg-gray-200 flex flex-col h-full overflow-hidden">
         <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm shrink-0">
           <div className="flex space-x-2">
@@ -133,24 +134,28 @@ export default function Home() {
             <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
             <div className="w-3 h-3 rounded-full bg-green-400"></div>
           </div>
-          <div className="text-xs font-medium text-gray-500 bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200">Wizualizacja Live (Wbudowany Tailwind)</div>
+          <div className="text-xs font-medium text-gray-500 bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200">Wizualizacja Live (Tailwind CSS)</div>
           <div className="w-12"></div>
         </div>
         
         <div className="flex-1 w-full bg-white relative">
           {htmlContent ? (
-            // MAGIA: Prawdziwa mini-przeglądarka ładująca style z CDN!
             <iframe 
               className="w-full h-full border-none absolute top-0 left-0"
+              sandbox="allow-scripts allow-same-origin"
               srcDoc={`
                 <!DOCTYPE html>
                 <html>
                   <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                    <style>
+                      /* Zabezpieczenie na wypadek wolniejszego ładowania */
+                      body { font-family: ui-sans-serif, system-ui, sans-serif; }
+                    </style>
                   </head>
-                  <body class="antialiased">
+                  <body>
                     ${htmlContent}
                   </body>
                 </html>
