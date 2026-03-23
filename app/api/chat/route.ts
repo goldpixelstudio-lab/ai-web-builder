@@ -11,11 +11,11 @@ export async function POST(req: Request) {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Szybki i inteligentny model od OpenAI
+        model: 'gpt-4o-mini', 
         messages: [
           { 
             role: 'system', 
-            content: 'Jesteś ekspertem web developmentu i UX/UI. Pomagasz projektować profesjonalne, zoptymalizowane pod SEO struktury stron i kod. Skupiasz się na dostarczaniu rozwiązań idealnie pasujących do wdrożeń opartych na systemach CMS i zaawansowanych page builderach (np. Joomla + SP Page Builder). Zawsze odpowiadaj zwięźle i profesjonalnie, skupiając się na etapowej pracy.' 
+            content: 'Jesteś ekspertem web developmentu i UX/UI. Pomagasz projektować profesjonalne, zoptymalizowane pod SEO struktury stron i kod. Skupiasz się na dostarczaniu rozwiązań idealnie pasujących do wdrożeń opartych na systemach CMS i zaawansowanych page builderach. Zawsze odpowiadaj zwięźle i profesjonalnie.' 
           },
           { role: 'user', content: message }
         ]
@@ -23,9 +23,16 @@ export async function POST(req: Request) {
     });
 
     const data = await response.json();
+
+    // TUTAJ JEST MAGIA: Jeśli OpenAI odrzuci prośbę, wyświetlimy powód na czacie!
+    if (data.error) {
+      console.error('Szczegóły błędu OpenAI:', data.error);
+      return NextResponse.json({ reply: `⚠️ Odmowa od OpenAI: ${data.error.message}` });
+    }
+
     return NextResponse.json({ reply: data.choices[0].message.content });
   } catch (error) {
-    console.error('Błąd API:', error);
-    return NextResponse.json({ error: 'Błąd połączenia z AI' }, { status: 500 });
+    console.error('Błąd aplikacji:', error);
+    return NextResponse.json({ reply: '⚠️ Wystąpił krytyczny błąd połączenia z serwerem.' });
   }
 }
