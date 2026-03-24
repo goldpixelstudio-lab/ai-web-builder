@@ -62,18 +62,17 @@ export default function Home() {
     localStorage.setItem("profeProjects", JSON.stringify(updated));
   };
 
-  // --- ZAKTUALIZOWANA FUNKCJA Z AUTOPILOTEM ---
   const sendMessage = async () => {
     if (isLoading) return;
 
     let promptToSend = input.trim();
 
-    // Jeśli pole jest puste, AI samo wybiera odpowiednią komendę dla danego Etapu
     if (!promptToSend) {
+      // AUTOPILOT - ZAMIANA LOGIKI ETAPU 2 i 3
       if (activeStep === 1) promptToSend = "Zbuduj strategię i architekturę (Dokument 1, 9, 10, 12) dla nowej, profesjonalnej strony.";
-      else if (activeStep === 2) promptToSend = "Bazując na ustalonej strategii, wygeneruj powalający kod wizualny HTML+Tailwind, zachowując asymetrię i nowoczesny design.";
-      else if (activeStep === 3) promptToSend = "Opracuj rygorystyczną optymalizację SEO i zalecenia dla wyszukiwarek bazujących na AI (Dokument 11).";
-      else if (activeStep === 4) promptToSend = "Zmapuj kod wizualny na środowisko Joomla i SP Page Builder (Dokument 2, 3, 7, 13).";
+      else if (activeStep === 2) promptToSend = "Opracuj rygorystyczną optymalizację SEO i zalecenia dla wyszukiwarek bazujących na AI (Dokument 11).";
+      else if (activeStep === 3) promptToSend = "Bazując na ustalonej strategii i optymalizacji SEO, wygeneruj powalający kod wizualny HTML+Tailwind, zachowując asymetrię i nowoczesny design.";
+      else if (activeStep === 4) promptToSend = "Zmapuj cały wygenerowany projekt na środowisko Joomla i SP Page Builder (Dokument 2, 3, 7, 13).";
       
       setInput(promptToSend);
     }
@@ -109,9 +108,19 @@ export default function Home() {
           setDocuments(newDocs);
         }
 
+        // PARSER - ETAP 2: SEO
         if (activeStep === 2) {
+          const doc11 = extractDoc("DOC_11");
+          if (doc11) {
+            const newDocs: Record<string, string> = { ...documents };
+            newDocs["doc11"] = doc11;
+            setDocuments(newDocs);
+          }
+        }
+
+        // PARSER - ETAP 3: HTML WIZUALNY
+        if (activeStep === 3) {
           let html = extractDoc("HTML");
-          
           if (!html) {
             const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
             if (mdMatch) html = mdMatch[1];
@@ -119,19 +128,9 @@ export default function Home() {
           if (!html) {
              html = aiText;
           }
-
           if (html) {
             let cleanHtml = html.replace(/```html/gi, "").replace(/```/g, "").trim();
             setHtmlContent(cleanHtml);
-          }
-        }
-
-        if (activeStep === 3) {
-          const doc11 = extractDoc("DOC_11");
-          if (doc11) {
-            const newDocs: Record<string, string> = { ...documents };
-            newDocs["doc11"] = doc11;
-            setDocuments(newDocs);
           }
         }
 
@@ -144,7 +143,6 @@ export default function Home() {
           setDocuments(newDocs);
         }
 
-        // System czeka 3 sekundy, żebyś mógł przeczytać wklejony prompt, i dopiero go czyści
         setTimeout(() => setInput(""), 3000);
       }
     } catch (e) {
@@ -157,7 +155,7 @@ export default function Home() {
 
   const downloadHtmlPackage = () => {
     if (!htmlContent) {
-      alert("⚠️ Brak wygenerowanego kodu wizualnego (Etap 2). Nie ma czego eksportować.");
+      alert("⚠️ Brak wygenerowanego kodu wizualnego (Etap 3). Nie ma czego eksportować.");
       return;
     }
 
@@ -277,8 +275,8 @@ export default function Home() {
               <div className="flex space-x-4 w-full max-w-5xl">
                 {[
                   { step: 1, name: "Struktura", desc: "Strategia & Copy" },
-                  { step: 2, name: "Visual", desc: "UI/UX & Design" },
-                  { step: 3, name: "Optimization", desc: "SEO & AI" },
+                  { step: 2, name: "Optimization", desc: "SEO & AI" },
+                  { step: 3, name: "Visual", desc: "UI/UX & Design" },
                   { step: 4, name: "Deployment", desc: "Joomla & Handoff" }
                 ].map((s) => (
                   <div key={s.step} onClick={() => setActiveStep(s.step as any)} className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer ${activeStep === s.step ? "border-blue-600 bg-blue-50 dark:bg-blue-900/10" : "border-gray-50 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700"}`}>
@@ -300,8 +298,8 @@ export default function Home() {
                 </div>
                 <div className="flex-1 p-6 overflow-y-auto space-y-2 text-[11px] font-bold uppercase tracking-tight text-gray-500">
                   {activeStep === 1 && ["Dokument 1: Strategia", "Dokument 9: Copy", "Dokument 10: Premium Polish", "Dokument 12: Asset Plan"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                  {activeStep === 2 && ["Silnik Wizualny (Render HTML)", "Aplikacja Stylów Tailwind", "Implementacja Lucide Icons"].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
-                  {activeStep === 3 && ["Dokument 11: SEO / AI Search"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
+                  {activeStep === 2 && ["Dokument 11: SEO / AI Search"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
+                  {activeStep === 3 && ["Silnik Wizualny (Render HTML)", "Aplikacja Stylów Tailwind", "Implementacja Lucide Icons"].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
                   {activeStep === 4 && ["Dokument 2: SPPB Layout", "Dokument 3: Excel Matrix", "Dokument 7: Master Handoff", "Dokument 13: QA Checklist"].map(d => <div key={d} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 rounded-xl border border-blue-100 dark:border-blue-800/50">{d}</div>)}
                 </div>
                 <div className="p-6 border-t border-gray-100 dark:border-slate-800">
@@ -319,7 +317,7 @@ export default function Home() {
               </div>
               
               <div className="flex-1 bg-gray-100 dark:bg-slate-950 p-8 overflow-y-auto relative flex flex-col items-center">
-                {activeStep === 2 && htmlContent && (
+                {activeStep === 3 && htmlContent && (
                   <div className="bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm flex space-x-1 mb-6 sticky top-0 z-10">
                     {(["desktop", "tablet", "mobile"] as const).map((m) => (
                       <button key={m} onClick={() => setViewMode(m)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${viewMode === m ? "bg-gray-100 dark:bg-slate-900 text-blue-600 dark:text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
@@ -330,6 +328,7 @@ export default function Home() {
                 )}
 
                 <div className="w-full max-w-5xl">
+                  {/* ETAP 1 */}
                   {activeStep === 1 && (
                     Object.keys(documents).length === 0 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
@@ -352,39 +351,8 @@ export default function Home() {
                     )
                   )}
 
+                  {/* ETAP 2: SEO */}
                   {activeStep === 2 && (
-                    htmlContent ? (
-                      <div className="flex justify-center w-full">
-                        <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-white shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-200 dark:border-slate-700 relative">
-                          <iframe className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" srcDoc={`
-                            <!DOCTYPE html>
-                            <html lang="pl" class="antialiased">
-                              <head>
-                                <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-                                <script src="https://unpkg.com/lucide@latest"></script>
-                                <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
-                                <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }</style>
-                              </head>
-                              <body class="bg-white text-slate-900">
-                                ${htmlContent}
-                                <script>lucide.createIcons();</script>
-                              </body>
-                            </html>
-                          `} />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
-                          Oczekiwanie na render wizualny... <br/>
-                          <span className="text-sm opacity-70 mt-2 block">Zostaw pole puste i kliknij przycisk, aby wygenerować design.</span>
-                        </p>
-                      </div>
-                    )
-                  )}
-
-                  {activeStep === 3 && (
                     !documents.doc11 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
                         <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
@@ -398,11 +366,47 @@ export default function Home() {
                           <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Dokument 11 — Wersja SEO / AI Search Visibility</h3>
                           <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc11}</div>
                         </div>
+                      </div>
+                    )
+                  )}
+
+                  {/* ETAP 3: WIZUALIZACJA */}
+                  {activeStep === 3 && (
+                    !htmlContent ? (
+                      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
+                          Oczekiwanie na render wizualny... <br/>
+                          <span className="text-sm opacity-70 mt-2 block">Zostaw pole puste i kliknij przycisk, aby wygenerować design.</span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-8">
+                        <div className="flex justify-center w-full">
+                          <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-white shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-200 dark:border-slate-700 relative">
+                            <iframe className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" srcDoc={`
+                              <!DOCTYPE html>
+                              <html lang="pl" class="antialiased">
+                                <head>
+                                  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+                                  <script src="https://unpkg.com/lucide@latest"></script>
+                                  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+                                  <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }</style>
+                                </head>
+                                <body class="bg-white text-slate-900">
+                                  ${htmlContent}
+                                  <script>lucide.createIcons();</script>
+                                </body>
+                              </html>
+                            `} />
+                          </div>
+                        </div>
                         
+                        {/* PRZENIESIONY PANEL EKSPORTU PACZKI */}
                         <div className="bg-gradient-to-r from-gray-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-3xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between border border-gray-800 dark:border-slate-700">
                            <div className="mb-6 md:mb-0">
                              <h4 className="text-white font-black text-xl uppercase tracking-tight">Gotowy do wdrożenia?</h4>
-                             <p className="text-gray-400 text-sm mt-1">Pobierz wygenerowany kod (Etap 2) jako autonomiczną paczkę HTML gotową do wrzucenia na serwer.</p>
+                             <p className="text-gray-400 text-sm mt-1">Pobierz wygenerowany wyżej kod jako autonomiczną paczkę HTML gotową do wrzucenia na serwer.</p>
                            </div>
                            <button onClick={downloadHtmlPackage} className="bg-green-500 hover:bg-green-400 text-gray-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:shadow-[0_0_40px_rgba(34,197,94,0.5)] transition-all flex items-center shrink-0">
                              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -413,6 +417,7 @@ export default function Home() {
                     )
                   )}
                   
+                  {/* ETAP 4: DEPLOYMENT */}
                   {activeStep === 4 && (
                     <div className="space-y-6">
                       {Object.keys(documents).filter(k => ["doc2", "doc3", "doc7", "doc13"].includes(k)).length === 0 ? (

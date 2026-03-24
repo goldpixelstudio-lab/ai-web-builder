@@ -15,8 +15,14 @@ export async function POST(req: Request) {
       Zawsze otaczaj odpowiedź tagami.`;
     } 
     else if (step === 2) {
+      systemContent = `Jesteś ELITARNYM EKSPERTEM SEO.
+      Wygeneruj 1 rygorystyczny dokument:
+      <DOC_11> Dokument 11 — Wersja SEO / AI Search Visibility. Tagi, słowa kluczowe, rekomendacje AI. </DOC_11>
+      Zawsze otaczaj odpowiedź tagiem <DOC_11>.`;
+    }
+    else if (step === 3) {
       systemContent = `Jesteś WYBITNYM DYREKTOREM KREATYWNYM (THE VISIONARY).
-      Znajdujemy się w Etapie 2. Twój cel to zamiana wytycznych w POWALAJĄCY KOD WIZUALNY HTML+Tailwind.
+      Znajdujemy się w Etapie 3. Twój cel to zamiana wytycznych w POWALAJĄCY KOD WIZUALNY HTML+Tailwind.
       
       ZASADY DESIGNU V11:
       1. ZAKAZ NUDY: Brak standardowych siatek. Stosuj asymetrię, bento grid, przenikanie się warstw.
@@ -25,12 +31,6 @@ export async function POST(req: Request) {
 
       ZWRÓĆ TYLKO I WYŁĄCZNIE KOD HTML W ZNACZNIKACH <HTML> tutaj kod </HTML>. Bez żadnego dodatkowego tekstu.`;
     } 
-    else if (step === 3) {
-      systemContent = `Jesteś ELITARNYM EKSPERTEM SEO.
-      Wygeneruj 1 rygorystyczny dokument:
-      <DOC_11> Dokument 11 — Wersja SEO / AI Search Visibility. Tagi, słowa kluczowe, rekomendacje AI. </DOC_11>
-      Zawsze otaczaj odpowiedź tagiem <DOC_11>.`;
-    }
     else if (step === 4) {
       systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER.
       Wygeneruj dokumentację wdrożeniową w tagach:
