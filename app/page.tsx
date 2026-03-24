@@ -19,6 +19,11 @@ export default function Home() {
   // SYSTEM MOTYWÓW
   const [darkMode, setDarkMode] = useState(false);
 
+  // SILNIK KOMUNIKACJI AI (NOWE STANY)
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [documents, setDocuments] = useState<Record<string, string>>({});
+
   useEffect(() => {
     const savedProjects = localStorage.getItem("profeProjects");
     if (savedProjects) setProjects(JSON.parse(savedProjects));
@@ -50,6 +55,54 @@ export default function Home() {
     const updated = projects.filter(p => p.id !== id);
     setProjects(updated);
     localStorage.setItem("profeProjects", JSON.stringify(updated));
+  };
+
+  // NOWY SILNIK KOMUNIKACJI Z API
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // Wysyłamy polecenie oraz informację, w którym etapie jesteśmy
+        body: JSON.stringify({ 
+          messages: [{ role: "user", content: input }],
+          step: activeStep 
+        }),
+      });
+      const data = await res.json();
+      
+      if (data.reply) {
+        let aiText = data.reply;
+        
+        // Funkcja do "wycinania" dokumentów z tagów XML
+        const extractDoc = (tag: string) => {
+          const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`);
+          const match = aiText.match(regex);
+          return match ? match[1].trim() : null;
+        };
+
+        const newDocs: Record<string, string> = { ...documents };
+        
+        // Logika przypisywania dokumentów dla Etapu 1
+        if (activeStep === 1) {
+          const doc1 = extractDoc("DOC_1"); if (doc1) newDocs["doc1"] = doc1;
+          const doc9 = extractDoc("DOC_9"); if (doc9) newDocs["doc9"] = doc9;
+          const doc10 = extractDoc("DOC_10"); if (doc10) newDocs["doc10"] = doc10;
+          const doc12 = extractDoc("DOC_12"); if (doc12) newDocs["doc12"] = doc12;
+        }
+
+        setDocuments(newDocs);
+        setInput(""); // Czyścimy pole po wysłaniu
+      }
+    } catch (e) {
+      console.error(e);
+      alert("⚠️ Wystąpił błąd podczas analizy.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // --- WIDOK 1: EKRAN POWITALNY ---
@@ -92,7 +145,7 @@ export default function Home() {
     );
   }
 
-  // --- SZKIELET DLA LISTY I WIZARDA (Z PAZKIEM MENU) ---
+  // --- SZKIELET DLA LISTY I WIZARDA ---
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
@@ -213,15 +266,68 @@ export default function Home() {
                   {activeStep === 4 && ["Dokument 2: SPPB Layout", "Dokument 3: Excel Matrix", "Dokument 7: Master Handoff", "Dokument 13: QA Checklist"].map(d => <div key={d} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 rounded-xl border border-blue-100 dark:border-blue-800/50">{d}</div>)}
                 </div>
                 <div className="p-6 border-t border-gray-100 dark:border-slate-800">
-                  <textarea className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-4 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" rows={4} placeholder="Wytyczne dla Eksperta..."></textarea>
-                  <button className="w-full mt-4 bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition uppercase tracking-[0.2em] text-[10px]">Generuj Operacyjnie</button>
+                  <textarea 
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-4 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" 
+                    rows={4} 
+                    placeholder="Wprowadź wytyczne dla Eksperta (np. 'Zbuduj strukturę dla...')"
+                  ></textarea>
+                  <button 
+                    onClick={sendMessage}
+                    disabled={isLoading}
+                    className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20'}`}
+                  >
+                    {isLoading ? "Generowanie..." : "Generuj Operacyjnie"}
+                  </button>
                 </div>
               </div>
+              
+              {/* Prawy panel - Renderowanie Dokumentów */}
               <div className="flex-1 bg-gray-100 dark:bg-slate-950 p-10 overflow-y-auto">
-                <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl min-h-full p-12 flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                   <p className="text-gray-400 font-black italic text-xl uppercase tracking-tighter opacity-20">Analiza Etapu 0{activeStep}</p>
+                <div className="max-w-5xl mx-auto space-y-8">
+                  <h2 className="text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tighter">Wyniki Operacyjne: Etap {activeStep}</h2>
+                  
+                  {Object.keys(documents).length === 0 ? (
+                    <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl min-h-[400px] p-12 flex items-center justify-center border border-gray-100 dark:border-slate-800">
+                      <div className="text-center text-gray-400 dark:text-slate-500">
+                        <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <p className="font-medium text-lg uppercase tracking-widest">Oczekiwanie na generowanie danych...</p>
+                        <p className="text-sm mt-2">Użyj asystenta po lewej stronie, aby rozpocząć proces.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Renderowanie wyciągniętych dokumentów */}
+                      {documents.doc1 && activeStep === 1 && (
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
+                          <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Dokument 1 — Strategia i architektura</h3>
+                          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc1}</div>
+                        </div>
+                      )}
+                      {documents.doc9 && activeStep === 1 && (
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
+                          <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Dokument 9 — Handoff dla copywritera</h3>
+                          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc9}</div>
+                        </div>
+                      )}
+                      {documents.doc10 && activeStep === 1 && (
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
+                          <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Dokument 10 — Wersja redakcyjna (Premium)</h3>
+                          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc10}</div>
+                        </div>
+                      )}
+                      {documents.doc12 && activeStep === 1 && (
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
+                          <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Dokument 12 — Asset plan</h3>
+                          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc12}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+
             </div>
           </>
         )}
