@@ -17,12 +17,10 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
-  // SILNIK KOMUNIKACJI I DANYCH WIZARDA
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [documents, setDocuments] = useState<Record<string, string>>({});
   
-  // NOWE STANY DLA ETAPU 2 (Wizualizacja)
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
 
@@ -82,13 +80,13 @@ export default function Home() {
       if (data.reply) {
         let aiText = data.reply;
         
+        // Zmodyfikowany parser ignorujący wielkość liter (case-insensitive "i")
         const extractDoc = (tag: string) => {
-          const regex = new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`);
+          const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
           const match = aiText.match(regex);
           return match ? match[1].trim() : null;
         };
 
-        // ETAP 1: Parsowanie dokumentów tekstowych
         if (activeStep === 1) {
           const newDocs: Record<string, string> = { ...documents };
           const doc1 = extractDoc("DOC_1"); if (doc1) newDocs["doc1"] = doc1;
@@ -98,16 +96,25 @@ export default function Home() {
           setDocuments(newDocs);
         }
 
-        // ETAP 2: Parsowanie kodu HTML
         if (activeStep === 2) {
-          const html = extractDoc("HTML");
+          let html = extractDoc("HTML");
+          
+          // Zabezpieczenie: Jeśli AI zapomniało o tagach <HTML>, szukamy bloków ```html
+          if (!html) {
+            const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
+            if (mdMatch) html = mdMatch[1];
+          }
+          // Zabezpieczenie ostateczne: Bierzemy całą odpowiedź
+          if (!html) {
+             html = aiText;
+          }
+
           if (html) {
             let cleanHtml = html.replace(/```html/gi, "").replace(/```/g, "").trim();
             setHtmlContent(cleanHtml);
           }
         }
 
-        // ETAP 3: Parsowanie SEO
         if (activeStep === 3) {
           const doc11 = extractDoc("DOC_11");
           if (doc11) {
@@ -115,6 +122,16 @@ export default function Home() {
             newDocs["doc11"] = doc11;
             setDocuments(newDocs);
           }
+        }
+
+        // ETAP 4: Parsowanie dokumentów dla Joomla
+        if (activeStep === 4) {
+          const newDocs: Record<string, string> = { ...documents };
+          const doc2 = extractDoc("DOC_2"); if (doc2) newDocs["doc2"] = doc2;
+          const doc3 = extractDoc("DOC_3"); if (doc3) newDocs["doc3"] = doc3;
+          const doc7 = extractDoc("DOC_7"); if (doc7) newDocs["doc7"] = doc7;
+          const doc13 = extractDoc("DOC_13"); if (doc13) newDocs["doc13"] = doc13;
+          setDocuments(newDocs);
         }
 
         setInput("");
@@ -127,7 +144,6 @@ export default function Home() {
     }
   };
 
-  // FUNKCJA DO EKSPORTU KODU JAKO PLIK HTML
   const downloadHtmlPackage = () => {
     if (!htmlContent) {
       alert("⚠️ Brak wygenerowanego kodu wizualnego (Etap 2). Nie ma czego eksportować.");
@@ -162,7 +178,6 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  // --- WIDOK 1: EKRAN POWITALNY ---
   if (currentView === "landing") {
     return (
       <div className={`${darkMode ? "dark" : ""}`}>
@@ -187,12 +202,10 @@ export default function Home() {
     );
   }
 
-  // --- SZKIELET GŁÓWNY APLIKACJI ---
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
         
-        {/* TOP NAVIGATION */}
         <nav className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-50 shadow-sm transition-colors duration-300">
           <div className="flex items-center space-x-10">
             <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-blue-600">Architect</span></span>
@@ -219,7 +232,6 @@ export default function Home() {
           </div>
         </nav>
 
-        {/* --- WIDOK: LISTA PROJEKTÓW --- */}
         {currentView === "list" && (
           <div className="flex-1 overflow-y-auto p-12">
             <div className="max-w-7xl mx-auto">
@@ -231,7 +243,6 @@ export default function Home() {
                 {projects.map(p => (
                   <div key={p.id} className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col group hover:-translate-y-2 transition-all duration-500">
                     <div className="h-48 bg-gray-100 dark:bg-slate-800 flex items-center justify-center border-b border-gray-100 dark:border-slate-800 overflow-hidden relative">
-                       {/* Mini podgląd iframe na liście */}
                        <iframe className="w-[200%] h-[200%] absolute origin-top-left scale-50 pointer-events-none" srcDoc={p.previewHtml} />
                     </div>
                     <div className="p-8">
@@ -249,10 +260,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* --- WIDOK: WIZARD --- */}
         {currentView === "wizard" && (
           <>
-            {/* Stepper */}
             <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-8 py-6 flex justify-between items-center shrink-0">
               <div className="flex space-x-4 w-full max-w-5xl">
                 {[
@@ -272,10 +281,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Editor Area */}
             <div className="flex-1 flex overflow-hidden">
-              
-              {/* Lewy panel (Asystent) */}
               <div className="w-[450px] bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col shrink-0">
                 <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-800">
                   <h3 className="font-black uppercase tracking-tighter text-lg dark:text-white">Expert System V11</h3>
@@ -301,10 +307,7 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* Prawy panel (Wyniki / Canvas) */}
               <div className="flex-1 bg-gray-100 dark:bg-slate-950 p-8 overflow-y-auto relative flex flex-col items-center">
-                
-                {/* Opcje podglądu wyświetlane TYLKO w Etapie 2 */}
                 {activeStep === 2 && htmlContent && (
                   <div className="bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm flex space-x-1 mb-6 sticky top-0 z-10">
                     {(["desktop", "tablet", "mobile"] as const).map((m) => (
@@ -316,7 +319,6 @@ export default function Home() {
                 )}
 
                 <div className="w-full max-w-5xl">
-                  {/* ETAP 1: Renderowanie dokumentów strategicznych */}
                   {activeStep === 1 && (
                     Object.keys(documents).length === 0 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
@@ -339,7 +341,6 @@ export default function Home() {
                     )
                   )}
 
-                  {/* ETAP 2: Renderowanie iframe'a z wygenerowanym designem */}
                   {activeStep === 2 && (
                     htmlContent ? (
                       <div className="flex justify-center w-full">
@@ -372,7 +373,6 @@ export default function Home() {
                     )
                   )}
 
-                  {/* ETAP 3: Renderowanie analizy SEO i Eksport */}
                   {activeStep === 3 && (
                     !documents.doc11 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
@@ -388,7 +388,6 @@ export default function Home() {
                           <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc11}</div>
                         </div>
                         
-                        {/* PANEL EKSPORTU PACZKI */}
                         <div className="bg-gradient-to-r from-gray-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-3xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between border border-gray-800 dark:border-slate-700">
                            <div className="mb-6 md:mb-0">
                              <h4 className="text-white font-black text-xl uppercase tracking-tight">Gotowy do wdrożenia?</h4>
@@ -403,10 +402,30 @@ export default function Home() {
                     )
                   )}
                   
-                  {/* Zaślepka dla Etapu 4 */}
                   {activeStep === 4 && (
-                    <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                      <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest">Moduł Etapu 4 w przygotowaniu...</p>
+                    <div className="space-y-6">
+                      {Object.keys(documents).filter(k => ["doc2", "doc3", "doc7", "doc13"].includes(k)).length === 0 ? (
+                        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
+                          <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
+                            Oczekiwanie na dokumentację wdrożeniową... <br/>
+                            <span className="text-sm opacity-70 mt-2 block">Poinstruuj asystenta, by zmapował kod na Joomla / SP Page Builder.</span>
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          {["doc2", "doc3", "doc7", "doc13"].map(key => documents[key] && (
+                            <div key={key} className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
+                              <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+                                {key === "doc2" && "Dokument 2 — Architektura SP Page Builder"}
+                                {key === "doc3" && "Dokument 3 — Tabela wdrożeniowa"}
+                                {key === "doc7" && "Dokument 7 — Master Handoff"}
+                                {key === "doc13" && "Dokument 13 — QA / Audit Checklist"}
+                              </h3>
+                              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents[key]}</div>
+                            </div>
+                          ))}
+                        </>
+                      )}
                     </div>
                   )}
 
