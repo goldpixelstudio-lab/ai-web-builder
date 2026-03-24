@@ -62,8 +62,22 @@ export default function Home() {
     localStorage.setItem("profeProjects", JSON.stringify(updated));
   };
 
+  // --- ZAKTUALIZOWANA FUNKCJA Z AUTOPILOTEM ---
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (isLoading) return;
+
+    let promptToSend = input.trim();
+
+    // Jeśli pole jest puste, AI samo wybiera odpowiednią komendę dla danego Etapu
+    if (!promptToSend) {
+      if (activeStep === 1) promptToSend = "Zbuduj strategię i architekturę (Dokument 1, 9, 10, 12) dla nowej, profesjonalnej strony.";
+      else if (activeStep === 2) promptToSend = "Bazując na ustalonej strategii, wygeneruj powalający kod wizualny HTML+Tailwind, zachowując asymetrię i nowoczesny design.";
+      else if (activeStep === 3) promptToSend = "Opracuj rygorystyczną optymalizację SEO i zalecenia dla wyszukiwarek bazujących na AI (Dokument 11).";
+      else if (activeStep === 4) promptToSend = "Zmapuj kod wizualny na środowisko Joomla i SP Page Builder (Dokument 2, 3, 7, 13).";
+      
+      setInput(promptToSend);
+    }
+
     setIsLoading(true);
 
     try {
@@ -71,7 +85,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          messages: [{ role: "user", content: input }],
+          messages: [{ role: "user", content: promptToSend }],
           step: activeStep 
         }),
       });
@@ -80,7 +94,6 @@ export default function Home() {
       if (data.reply) {
         let aiText = data.reply;
         
-        // Zmodyfikowany parser ignorujący wielkość liter (case-insensitive "i")
         const extractDoc = (tag: string) => {
           const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
           const match = aiText.match(regex);
@@ -99,12 +112,10 @@ export default function Home() {
         if (activeStep === 2) {
           let html = extractDoc("HTML");
           
-          // Zabezpieczenie: Jeśli AI zapomniało o tagach <HTML>, szukamy bloków ```html
           if (!html) {
             const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
             if (mdMatch) html = mdMatch[1];
           }
-          // Zabezpieczenie ostateczne: Bierzemy całą odpowiedź
           if (!html) {
              html = aiText;
           }
@@ -124,7 +135,6 @@ export default function Home() {
           }
         }
 
-        // ETAP 4: Parsowanie dokumentów dla Joomla
         if (activeStep === 4) {
           const newDocs: Record<string, string> = { ...documents };
           const doc2 = extractDoc("DOC_2"); if (doc2) newDocs["doc2"] = doc2;
@@ -134,7 +144,8 @@ export default function Home() {
           setDocuments(newDocs);
         }
 
-        setInput("");
+        // System czeka 3 sekundy, żebyś mógł przeczytać wklejony prompt, i dopiero go czyści
+        setTimeout(() => setInput(""), 3000);
       }
     } catch (e) {
       console.error(e);
@@ -299,7 +310,7 @@ export default function Home() {
                     onChange={(e) => setInput(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-4 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" 
                     rows={4} 
-                    placeholder="Wprowadź wytyczne dla Eksperta..."
+                    placeholder="Wprowadź wytyczne dla Eksperta lub zostaw puste, aby odpalić autopilota..."
                   ></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20'}`}>
                     {isLoading ? "Przetwarzanie..." : "Generuj Operacyjnie"}
@@ -367,7 +378,7 @@ export default function Home() {
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
                         <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
                           Oczekiwanie na render wizualny... <br/>
-                          <span className="text-sm opacity-70 mt-2 block">Poinstruuj asystenta, by zamienił strategię w kod.</span>
+                          <span className="text-sm opacity-70 mt-2 block">Zostaw pole puste i kliknij przycisk, aby wygenerować design.</span>
                         </p>
                       </div>
                     )
@@ -378,7 +389,7 @@ export default function Home() {
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
                         <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
                           Oczekiwanie na analizę SEO... <br/>
-                          <span className="text-sm opacity-70 mt-2 block">Poproś asystenta o wygenerowanie Dokumentu 11.</span>
+                          <span className="text-sm opacity-70 mt-2 block">Kliknij przycisk z pustym polem, by rozpocząć.</span>
                         </p>
                       </div>
                     ) : (
@@ -408,7 +419,7 @@ export default function Home() {
                         <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
                           <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
                             Oczekiwanie na dokumentację wdrożeniową... <br/>
-                            <span className="text-sm opacity-70 mt-2 block">Poinstruuj asystenta, by zmapował kod na Joomla / SP Page Builder.</span>
+                            <span className="text-sm opacity-70 mt-2 block">Zostaw pole puste i kliknij, by odpalić autopilota i zmapować na Joomla / SP Page Builder.</span>
                           </p>
                         </div>
                       ) : (

@@ -19,9 +19,9 @@ export async function POST(req: Request) {
       Znajdujemy się w Etapie 2. Twój cel to zamiana wytycznych w POWALAJĄCY KOD WIZUALNY HTML+Tailwind.
       
       ZASADY DESIGNU V11:
-      1. ZAKAZ NUDY: Brak standardowych siatek. Stosuj asymetrię, przenikanie się warstw.
+      1. ZAKAZ NUDY: Brak standardowych siatek. Stosuj asymetrię, bento grid, przenikanie się warstw.
       2. STYL: Dobierz unikalną paletę kolorów.
-      3. GRAFIKI I IKONY: Używaj '[https://loremflickr.com/1200/800/business](https://loremflickr.com/1200/800/business)' oraz biblioteki Lucide.
+      3. GRAFIKI I IKONY: Używaj 'https://loremflickr.com/1200/800/business' oraz biblioteki Lucide.
 
       ZWRÓĆ TYLKO I WYŁĄCZNIE KOD HTML W ZNACZNIKACH <HTML> tutaj kod </HTML>. Bez żadnego dodatkowego tekstu.`;
     } 
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       <DOC_13> QA / Audit checklist przed publikacją. </DOC_13>`;
     }
 
-    const response = await fetch('[https://api.openai.com/v1/chat/completions](https://api.openai.com/v1/chat/completions)', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
