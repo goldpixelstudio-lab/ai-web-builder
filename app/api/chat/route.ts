@@ -21,16 +21,25 @@ export async function POST(req: Request) {
       Znajdujemy się w Etapie 2. Twój cel to zamiana wytycznych w POWALAJĄCY KOD WIZUALNY.
       
       ZASADY DESIGNU V11:
-      1. ZAKAZ NUDY: Brak standardowych siatek. Stosuj asymetrię, przenikanie się warstw (z-index, ujemne marginesy), bento-grid.
-      2. STYL: Dobierz unikalną paletę kolorów w klasach Tailwind (np. bg-[#0f172a]).
-      3. GRAFIKI I IKONY: Używaj 'https://loremflickr.com/szerokosc/wysokosc/slowokluczowe' dla zdjęć oraz biblioteki Lucide (<i data-lucide="camera"></i>) dla ikon.
-      4. TYPOGRAFIA: Twórz napięcie wizualne. Kontrastuj wielkości (gigantyczne nagłówki vs mały tekst).
+      1. ZAKAZ NUDY: Brak standardowych siatek. Stosuj asymetrię, przenikanie się warstw.
+      2. STYL: Dobierz unikalną paletę kolorów.
+      3. GRAFIKI I IKONY: Używaj 'https://loremflickr.com/szerokosc/wysokosc/slowokluczowe' oraz biblioteki Lucide (<i data-lucide="camera"></i>).
 
       Wymagany format odpowiedzi:
-      <HTML>
-      Tutaj wklej wyłącznie gotowy, zjawiskowy i w 100% responsywny kod HTML+Tailwind (tylko wnętrze tagu body). Zero bloków markdown (\`\`\`).
-      </HTML>`;
+      <HTML> Gotowy kod HTML+Tailwind (tylko wnętrze tagu body). </HTML>`;
     } 
+    // ETAP 3: SEO & AI SEARCH VISIBILITY
+    else if (step === 3) {
+      systemContent = `Jesteś ELITARNYM EKSPERTEM SEO oraz specjalistą od AI Search Visibility (GEO/AIO).
+      Znajdujemy się w Etapie 3. Twoim zadaniem jest opracowanie strategii pozycjonowania dla stworzonej podstrony.
+      
+      Wygeneruj 1 rygorystyczny dokument:
+      <DOC_11> Dokument 11 — Wersja SEO / AI Search Visibility. 
+      Podaj zoptymalizowane meta tagi (Title, Description z zachowaniem limitów znaków), semantyczną strukturę nagłówków H1-H6, strategię słów kluczowych (w tym long-tail dla wyszukiwań głosowych), wytyczne dla atrybutów ALT zdjęć oraz konkretne rekomendacje pod AI Overviews (np. optymalizacja sekcji FAQ pod kątem modeli językowych). Dodaj propozycję wdrożenia Schema.org (JSON-LD).
+      </DOC_11>
+      
+      Zawsze otaczaj odpowiedź tagiem <DOC_11>.`;
+    }
     else {
       systemContent = `Jesteś asystentem AI. Jesteśmy w Etapie ${step}. Analizuję dane...`;
     }

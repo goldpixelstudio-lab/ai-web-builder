@@ -107,6 +107,16 @@ export default function Home() {
           }
         }
 
+        // ETAP 3: Parsowanie SEO
+        if (activeStep === 3) {
+          const doc11 = extractDoc("DOC_11");
+          if (doc11) {
+            const newDocs: Record<string, string> = { ...documents };
+            newDocs["doc11"] = doc11;
+            setDocuments(newDocs);
+          }
+        }
+
         setInput("");
       }
     } catch (e) {
@@ -115,6 +125,41 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // FUNKCJA DO EKSPORTU KODU JAKO PLIK HTML
+  const downloadHtmlPackage = () => {
+    if (!htmlContent) {
+      alert("⚠️ Brak wygenerowanego kodu wizualnego (Etap 2). Nie ma czego eksportować.");
+      return;
+    }
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="pl" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${currentProjectName} - Export</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }</style>
+</head>
+<body class="bg-white text-slate-900">
+    ${htmlContent}
+    <script>lucide.createIcons();</script>
+</body>
+</html>`;
+
+    const blob = new Blob([fullHtml], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${currentProjectName.replace(/\s+/g, '-').toLowerCase()}-export.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // --- WIDOK 1: EKRAN POWITALNY ---
@@ -326,11 +371,42 @@ export default function Home() {
                       </div>
                     )
                   )}
+
+                  {/* ETAP 3: Renderowanie analizy SEO i Eksport */}
+                  {activeStep === 3 && (
+                    !documents.doc11 ? (
+                      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
+                          Oczekiwanie na analizę SEO... <br/>
+                          <span className="text-sm opacity-70 mt-2 block">Poproś asystenta o wygenerowanie Dokumentu 11.</span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
+                          <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Dokument 11 — Wersja SEO / AI Search Visibility</h3>
+                          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc11}</div>
+                        </div>
+                        
+                        {/* PANEL EKSPORTU PACZKI */}
+                        <div className="bg-gradient-to-r from-gray-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-3xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between border border-gray-800 dark:border-slate-700">
+                           <div className="mb-6 md:mb-0">
+                             <h4 className="text-white font-black text-xl uppercase tracking-tight">Gotowy do wdrożenia?</h4>
+                             <p className="text-gray-400 text-sm mt-1">Pobierz wygenerowany kod (Etap 2) jako autonomiczną paczkę HTML gotową do wrzucenia na serwer.</p>
+                           </div>
+                           <button onClick={downloadHtmlPackage} className="bg-green-500 hover:bg-green-400 text-gray-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:shadow-[0_0_40px_rgba(34,197,94,0.5)] transition-all flex items-center shrink-0">
+                             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                             Eksportuj Paczkę HTML
+                           </button>
+                        </div>
+                      </div>
+                    )
+                  )}
                   
-                  {/* Zaślepki dla Etapów 3 i 4 (Do zaprogramowania później) */}
-                  {(activeStep === 3 || activeStep === 4) && (
+                  {/* Zaślepka dla Etapu 4 */}
+                  {activeStep === 4 && (
                     <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                      <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest">Moduł Etapu {activeStep} w przygotowaniu...</p>
+                      <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest">Moduł Etapu 4 w przygotowaniu...</p>
                     </div>
                   )}
 
