@@ -24,7 +24,6 @@ export default function Home() {
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   
-  // Zmienna przechowująca naturalną odpowiedź AI (np. na Twoje pytania)
   const [aiResponseText, setAiResponseText] = useState<string | null>(null);
 
   const viewWidths = {
@@ -97,12 +96,10 @@ export default function Home() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
     setIsLoading(true);
-    setAiResponseText(null); // Czyszczenie poprzedniej odpowiedzi przy nowym zapytaniu
+    setAiResponseText(null); 
 
     let projectContext = "";
     
-    // Zbieramy kontekst tylko jeśli to wygenerowanie czegoś nowego (a nie luźna rozmowa)
-    // Ale by iteracja działała poprawnie, musimy go dokleić w sposób niewidoczny dla użytkownika.
     if (activeStep > 1 && Object.keys(documents).length > 0) {
       projectContext += "\n\n--- WIEDZA Z ETAPU 1 ---\n";
       if (documents.doc1) projectContext += `STRATEGIA:\n${documents.doc1.substring(0, 500)}...\n\n`;
@@ -135,6 +132,7 @@ export default function Home() {
         let isCodeOrDocGenerated = false;
         
         const extractDoc = (tag: string) => {
+          // Tu regex ze stringa, więc podwójne ukośniki są poprawne
           const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
           const match = aiText.match(regex);
           return match ? match[1].trim() : null;
@@ -167,11 +165,13 @@ export default function Home() {
         if (activeStep === 3) {
           let html = extractDoc("HTML");
           if (!html) {
-            const mdMatch = aiText.match(/```html([\\s\\S]*?)```/i);
+            // Tu był błąd, poprawione na [\s\S]
+            const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
             if (mdMatch) html = mdMatch[1];
           }
           if (!html) {
-             const docMatch = aiText.match(/(<!DOCTYPE html>[\\s\\S]*<\\/html>)/i);
+             // Tu był główny błąd powodujący awarię builda, poprawione na [\s\S] oraz <\/html>
+             const docMatch = aiText.match(/(<!DOCTYPE html>[\s\S]*<\/html>)/i);
              if (docMatch) html = docMatch[1];
           }
 
@@ -188,13 +188,15 @@ export default function Home() {
           if (doc2) {
             const newDocs = { ...documents };
             if (doc2) newDocs["doc2"] = doc2;
+            const doc3 = extractDoc("DOC_3"); if (doc3) newDocs["doc3"] = doc3;
+            const doc7 = extractDoc("DOC_7"); if (doc7) newDocs["doc7"] = doc7;
+            const doc13 = extractDoc("DOC_13"); if (doc13) newDocs["doc13"] = doc13;
             setDocuments(newDocs);
             localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
             isCodeOrDocGenerated = true;
           }
         }
 
-        // JEŚLI AI NIE WYGENEROWAŁO ZNACZNIKÓW, TO ZNACZY ŻE ODPOWIADA NA TWOJE PYTANIE W CZACIE
         if (!isCodeOrDocGenerated) {
            setAiResponseText(aiText);
         }
@@ -235,7 +237,8 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${currentProjectName.replace(/\\s+/g, '-').toLowerCase()}-export.html`;
+    // Poprawiony regex na prawidłowy (zamiast podwójnego ukośnika)
+    a.download = `${currentProjectName.replace(/\s+/g, '-').toLowerCase()}-export.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -351,7 +354,6 @@ export default function Home() {
                 </div>
                 
                 <div className="flex-1 p-6 overflow-y-auto flex flex-col">
-                  {/* Instrukcje Etapu (Znikają gdy AI odpowie) */}
                   {!aiResponseText && (
                     <div className="space-y-2 mb-6 text-[11px] font-bold uppercase tracking-tight text-gray-500">
                       {activeStep === 1 && ["Wydaj komendę z dołu", "lub spytaj o radę", "AI wykorzysta dane z sieci"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
@@ -360,7 +362,6 @@ export default function Home() {
                     </div>
                   )}
                   
-                  {/* WYRAŹNE OKIENKO ODPOWIEDZI AI */}
                   {aiResponseText && (
                     <div className="bg-blue-50 dark:bg-slate-800 border-l-4 border-blue-500 p-5 rounded-r-2xl mb-4 shadow-sm">
                        <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-2 uppercase tracking-widest">Wiadomość od asystenta:</p>
