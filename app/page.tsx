@@ -26,6 +26,7 @@ interface Project {
 }
 
 export default function Home() {
+  // --- WERYFIKACJA TOŻSAMOŚCI (NEXT-AUTH) ---
   const { data: session, status } = useSession();
 
   const [currentView, setCurrentView] = useState<"landing" | "list" | "wizard">("landing");
@@ -95,9 +96,6 @@ export default function Home() {
         setAiResponseText(null);
         setImages([]);
         setActiveStep(1);
-        localStorage.removeItem("profeActiveDocs");
-        localStorage.removeItem("profeActiveHtml");
-        localStorage.removeItem("profeActiveImages");
     }
   };
 
@@ -163,6 +161,14 @@ export default function Home() {
     setActivePageId(defaultPage.id);
     loadPageToWorkspace(newProjectId, defaultPage.id);
     setCurrentView("wizard");
+  };
+
+  const deleteProject = (id: string) => {
+    if(confirm("Na pewno usunąć ten projekt z archiwum?")) {
+        const updated = projects.filter(p => p.id !== id);
+        setProjects(updated);
+        localStorage.setItem("profeProjectsV2", JSON.stringify(updated));
+    }
   };
 
   const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -261,7 +267,7 @@ export default function Home() {
     if (!activeProject || !activePage) return;
     let basePrompt = "";
     if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię. Pracujemy nad stroną/podstroną: ${activePage.name}. Dopasuj strukturę i teksty konkretnie do jej celu.`;
-    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny kod HTML dla podstrony: ${activePage.name}. Zachowaj 100% spójności wizualnej (kolory, fonty, styl przycisków i kart) ze Stroną Główną. Pamiętaj o podlinkowaniu menu. Zwróć tylko HTML.`;
+    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny kod HTML dla podstrony: ${activePage.name}. Zachowaj 100% spójności wizualnej ze Stroną Główną. Pamiętaj o podlinkowaniu menu. Zwróć tylko HTML.`;
     else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Optymalizuj kod HTML podstrony ${activePage.name} (JSON-LD, tagi ALT, dopracowane nagłówki). Odpowiedz co zmieniłeś i zwróć nowy kod.`;
     else if (activeStep === 4) basePrompt = `Zmapuj ten kod na architekturę Joomla / SP Page Builder.`;
     setInput(basePrompt);
@@ -287,15 +293,14 @@ export default function Home() {
       projectContext += `\n--- OBECNY KOD WIZUALNY TEJ PODSTRONY ---\n${htmlContent}\n`;
     }
 
-    // INTELIGENTNE PRZEKAZANIE DESIGN SYSTEMU Z HOME
     if ((activeStep === 2 || activeStep === 3) && !activePage.isHome) {
         const homePage = activeProject.pages.find(p => p.isHome);
         if (homePage && homePage.htmlContent) {
             const fullHome = homePage.htmlContent;
-            const topPart = fullHome.substring(0, 2500); // Łapie HEAD, STYLE, NAV, HERO
-            const bottomPart = fullHome.substring(fullHome.length - 2000); // Łapie STOPKĘ
+            const topPart = fullHome.substring(0, 2500); 
+            const bottomPart = fullHome.substring(fullHome.length - 2000); 
             
-            projectContext += `\n--- GLOBALNY DESIGN SYSTEM (KOD STRONY GŁÓWNEJ) ---\nTo jest kod referencyjny Strony Głównej. MUSISZ utrzymać z nim spójność!\nZadania dla Ciebie:\n1. Skopiuj cały blok <style> z sekcji <head> (zmienne CSS).\n2. Skopiuj dokładnie strukturę i klasy <header> oraz <nav>.\n3. Skopiuj dokładnie strukturę i klasy <footer>.\n4. W nowej podstronie stosuj ten sam język designu: podglądnij poniżej jakich klas Tailwind użyto do tła, przycisków czy nagłówków na Głównej i zastosuj ten sam "vibe" w nowym contencie.\n\nOto początek Głównej:\n${topPart}\n\n[...środek wycięty...]\n\nOto koniec Głównej:\n${bottomPart}\n`;
+            projectContext += `\n--- GLOBALNY DESIGN SYSTEM (KOD STRONY GŁÓWNEJ) ---\nTo jest kod referencyjny Strony Głównej. MUSISZ utrzymać z nim spójność!\nZadania dla Ciebie:\n1. Skopiuj cały blok <style> z sekcji <head> (zmienne CSS).\n2. Skopiuj dokładnie strukturę i klasy <header> oraz <nav>.\n3. Skopiuj dokładnie strukturę i klasy <footer>.\n4. W nowej podstronie stosuj ten sam język designu. Oto początek Głównej:\n${topPart}\n\n[...środek wycięty...]\n\nOto koniec Głównej:\n${bottomPart}\n`;
         }
     }
 
@@ -394,43 +399,96 @@ export default function Home() {
     });
   };
 
+  // --- BLOKADA EKRANU (LOGOWANIE) ---
   if (status === "loading") return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-bold tracking-widest uppercase text-sm">Weryfikacja tożsamości...</div>;
   if (status === "unauthenticated" || !session) return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center font-sans">
           <div className="text-center mb-10"><h1 className="text-5xl font-black tracking-tighter text-white uppercase">Profe<span className="text-red-600">Architect</span> OS</h1></div>
           <button onClick={() => signIn('google')} className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)]">Zaloguj przez Google</button>
+          <p className="text-[9px] text-slate-600 uppercase tracking-widest mt-8 max-w-xs text-center">Tylko administrator przypisany do tego środowiska otrzyma dostęp.</p>
       </div>
   )
 
+  // --- EKRAN STARTOWY ---
   if (currentView === "landing") {
     return (
       <div className={`${darkMode ? "dark" : ""}`}>
         <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center justify-center font-sans transition-colors duration-300">
           <div className="absolute top-8 text-center w-full">
             <h1 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Profe<span className="text-red-600">Architect</span> OS</h1>
+            <p className="text-sm font-bold tracking-widest text-gray-400 uppercase mt-2">Zalogowany jako {session?.user?.email}</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-8 items-center justify-center w-full max-w-5xl px-6">
-            <button onClick={createNewProject} className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center">
+            <button onClick={createNewProject} className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center transition-all duration-500">
+              <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
               <span className="text-4xl font-black uppercase tracking-tight">Nowy Projekt</span>
             </button>
-            <button onClick={() => {
-                if(projects.length > 0) {
-                    setActiveProjectId(projects[0].id);
-                    setActivePageId(projects[0].pages[0].id);
-                    loadPageToWorkspace(projects[0].id, projects[0].pages[0].id);
-                    setCurrentView("wizard");
-                } else {
-                    alert("Brak projektów. Stwórz nowy.");
-                }
-            }} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center">
-              <span className="text-4xl font-black uppercase tracking-tight">Otwórz Warsztat</span>
+            <button onClick={() => setCurrentView("list")} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center transition-all duration-500">
+              <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+              <span className="text-4xl font-black uppercase tracking-tight">Archiwum</span>
             </button>
+          </div>
+          <button onClick={toggleTheme} className="fixed bottom-8 right-8 p-4 bg-white dark:bg-slate-800 rounded-full shadow-xl border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-white">{darkMode ? "☀️" : "🌙"}</button>
+          <button onClick={() => signOut()} className="fixed bottom-8 left-8 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-full shadow-xl border border-red-100 dark:border-red-800 font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition">Wyloguj</button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- ARCHIWUM PROJEKTÓW ---
+  if (currentView === "list") {
+    return (
+      <div className={`${darkMode ? "dark" : ""}`}>
+        <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
+          <nav className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-50 shadow-sm transition-colors duration-300">
+            <div className="flex items-center space-x-10">
+              <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-red-600">Architect</span> OS</span>
+            </div>
+            <button onClick={() => setCurrentView("landing")} className="bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Wróć</button>
+          </nav>
+
+          <div className="flex-1 overflow-y-auto p-12">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex justify-between items-end mb-12">
+                <div><h2 className="text-4xl font-black dark:text-white tracking-tighter">Archiwum Projektów</h2></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                {projects.map(p => {
+                  const mainPage = p.pages.find(page => page.isHome) || p.pages[0];
+                  return (
+                  <div key={p.id} className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col group hover:-translate-y-2 transition-all duration-500">
+                    <div className="h-48 bg-gray-100 dark:bg-slate-800 flex items-center justify-center border-b border-gray-100 dark:border-slate-800 overflow-hidden relative">
+                       <iframe className="w-[200%] h-[200%] absolute origin-top-left scale-50 pointer-events-none" srcDoc={mainPage?.htmlContent || ""} />
+                    </div>
+                    <div className="p-8">
+                      <h3 className="text-xl font-black dark:text-white mb-1 uppercase tracking-tight">{p.name}</h3>
+                      <p className="text-[10px] font-bold text-red-600 uppercase mb-6 tracking-widest">{p.date} • {p.pages.length} podstron</p>
+                      
+                      {/* PRZYWRÓCONE PRZYCISKI EDYCJI I USUWANIA */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <button onClick={() => {
+                            setActiveProjectId(p.id);
+                            if(p.pages.length > 0) {
+                                setActivePageId(p.pages[0].id);
+                                loadPageToWorkspace(p.id, p.pages[0].id);
+                            }
+                            setCurrentView("wizard");
+                        }} className="bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-black uppercase py-3 rounded-xl hover:bg-black transition">Edytuj Projekt</button>
+                        <button onClick={() => deleteProject(p.id)} className="text-[10px] font-bold text-red-500 uppercase py-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 rounded-xl transition">Usuń Projekt</button>
+                      </div>
+
+                    </div>
+                  </div>
+                )})}
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  // --- WARSZTAT ROBOCZY ---
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
@@ -454,11 +512,11 @@ export default function Home() {
           <div className="flex items-center space-x-4">
             <button onClick={toggleTheme} className="p-2 text-gray-500 hover:text-red-600 transition-colors">{darkMode ? "☀️" : "🌙"}</button>
             <button onClick={saveCurrentWorkToProject} className="bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zapisz Stan</button>
-            <button onClick={downloadFullProject} className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition shadow-lg shadow-green-500/20">Wydaj Projekt</button>
+            <button onClick={downloadFullProject} className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition shadow-lg shadow-green-500/20">Wydaj Cały Projekt</button>
           </div>
         </nav>
 
-        {currentView === "wizard" && activePage && (
+        {activePage && (
           <>
             <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-8 py-6 flex justify-between items-center shrink-0">
               <div className="flex space-x-4 w-full max-w-5xl">
@@ -494,7 +552,7 @@ export default function Home() {
                   {!aiResponseText && (
                     <div className="space-y-2 mb-6 text-[11px] font-bold uppercase tracking-tight text-gray-500">
                       <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">Edytujesz podstronę: {activePage.name}</div>
-                      {!activePage.isHome && <div className="p-3 bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-100 dark:border-slate-700">AI pobierze Style, Top i Bottom z Głównej!</div>}
+                      {!activePage.isHome && <div className="p-3 bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-100 dark:border-slate-700">AI skopiuje top i stopkę z Głównej!</div>}
                     </div>
                   )}
                   
@@ -510,7 +568,7 @@ export default function Home() {
                   <div className="px-6 pb-2">
                       <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4">
                           <div className="flex justify-between items-center mb-3">
-                             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Zasoby / Obrazy WebP</span>
+                             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Zasoby / Obrazy</span>
                              <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold text-red-600 uppercase bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-lg hover:bg-red-100 transition">+ Dodaj</button>
                              <input type="file" multiple accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
                           </div>
@@ -537,7 +595,7 @@ export default function Home() {
                   <div className="flex gap-2 mb-4">
                     <button onClick={applyAutopilot} className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition text-[10px] uppercase tracking-widest shadow-sm">Autopilot dla: {activePage.name}</button>
                   </div>
-                  <textarea value={input} onChange={(e) => setInput(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white shadow-inner" rows={3} placeholder={`Rozmawiaj z AI na temat ${activePage.name}...`}></textarea>
+                  <textarea value={input} onChange={(e) => setInput(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white shadow-inner" rows={3} placeholder={`Wydaj polecenie dla ${activePage.name}...`}></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30'}`}>
                     {isLoading ? "Przetwarzanie..." : "Wyślij"}
                   </button>
