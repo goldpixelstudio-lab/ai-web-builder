@@ -23,6 +23,8 @@ interface Project {
   id: string;
   name: string;
   date: string;
+  createdAt?: string; // Nowe pola czasu
+  updatedAt?: string; // Nowe pola czasu
   pages: PageData[];
 }
 
@@ -52,6 +54,7 @@ export default function Home() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
+  const importProjectRef = useRef<HTMLInputElement>(null); // Referencja dla importu JSON
 
   const viewWidths = { desktop: "100%", tablet: "768px", mobile: "390px" };
 
@@ -68,6 +71,8 @@ export default function Home() {
     localStorage.setItem("profeTheme", newMode ? "dark" : "light");
   };
 
+  const getFormattedDate = () => new Date().toLocaleString("pl-PL");
+
   const saveCurrentWorkToProject = () => {
     if (!activeProjectId || !activePageId) return;
     setProjects(prev => {
@@ -75,6 +80,7 @@ export default function Home() {
             if (proj.id !== activeProjectId) return proj;
             return {
                 ...proj,
+                updatedAt: getFormattedDate(), // Zaktualizowana data modyfikacji
                 pages: proj.pages.map(page => {
                     if (page.id !== activePageId) return page;
                     return { ...page, documents, htmlContent, images, refImages };
@@ -105,14 +111,24 @@ export default function Home() {
     const name = prompt("Podaj nazwę nowego projektu:");
     if (!name) return;
     
+    // Zabezpieczenie przed dublowaniem nazw
+    if (projects.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        alert("Projekt o takiej nazwie już istnieje. Wybierz inną.");
+        return;
+    }
+    
     const newProjectId = Date.now().toString();
+    const currentDate = getFormattedDate();
+
     const defaultPage: PageData = {
         id: "page_" + Date.now(), name: "Strona Główna", isHome: true, fileName: "index.html",
         documents: {}, htmlContent: null, images: [], refImages: []
     };
     
     const newProject: Project = {
-        id: newProjectId, name: name, date: new Date().toLocaleDateString(), pages: [defaultPage]
+        id: newProjectId, name: name, date: new Date().toLocaleDateString(), 
+        createdAt: currentDate, updatedAt: currentDate,
+        pages: [defaultPage]
     };
 
     const updatedProjects = [...projects, newProject];
@@ -131,9 +147,16 @@ export default function Home() {
     const newName = prompt("Zapisz bieżący projekt jako nową wersję (podaj nazwę):", activeProject.name + " - Wersja 2");
     if (!newName) return;
 
+    if (projects.some(p => p.name.toLowerCase() === newName.toLowerCase())) {
+        alert("Projekt o takiej nazwie już istnieje. Wybierz inną.");
+        return;
+    }
+
     saveCurrentWorkToProject();
 
     const newProjectId = Date.now().toString();
+    const currentDate = getFormattedDate();
+
     const duplicatedPages = activeProject.pages.map(page => ({
         ...page,
         id: "page_" + Date.now() + Math.random().toString(36).substr(2, 9)
@@ -144,6 +167,8 @@ export default function Home() {
         id: newProjectId,
         name: newName,
         date: new Date().toLocaleDateString(),
+        createdAt: currentDate,
+        updatedAt: currentDate,
         pages: duplicatedPages
     };
 
@@ -165,6 +190,54 @@ export default function Home() {
         setProjects(updated);
         localStorage.setItem("profeProjectsV2", JSON.stringify(updated));
     }
+  };
+
+  // --- IMPORT / EXPORT PROJEKTÓW (JSON) ---
+  const exportProjectJson = (project: Project) => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project));
+    const a = document.createElement("a");
+    a.href = dataStr;
+    a.download = `${project.name.replace(/\s+/g, '-').toLowerCase()}-backup.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleProjectImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const importedProject: Project = JSON.parse(event.target?.result as string);
+            
+            if (!importedProject.id || !importedProject.name || !importedProject.pages) {
+                throw new Error("Nieprawidłowy format pliku projektu.");
+            }
+            
+            let finalName = importedProject.name;
+            if (projects.some(p => p.name.toLowerCase() === finalName.toLowerCase())) {
+                finalName = finalName + " (Import)";
+            }
+            
+            importedProject.name = finalName;
+            importedProject.id = Date.now().toString(); // Reset ID dla pewności braku kolizji
+            importedProject.createdAt = getFormattedDate();
+            importedProject.updatedAt = getFormattedDate();
+            
+            setProjects(prev => {
+                const updated = [...prev, importedProject];
+                localStorage.setItem("profeProjectsV2", JSON.stringify(updated));
+                return updated;
+            });
+            alert("Projekt zaimportowany pomyślnie!");
+        } catch (err) {
+            alert("Błąd podczas importowania projektu: " + (err as Error).message);
+        }
+    };
+    reader.readAsText(file);
+    if(importProjectRef.current) importProjectRef.current.value = "";
   };
 
   const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -190,7 +263,11 @@ export default function Home() {
             documents: {}, htmlContent: null, images: [], refImages: []
         };
         setProjects(prev => {
-            const updated = prev.map(p => p.id === activeProjectId ? { ...p, pages: [...p.pages, newPage] } : p);
+            const updated = prev.map(p => p.id === activeProjectId ? { 
+                ...p, 
+                updatedAt: getFormattedDate(), 
+                pages: [...p.pages, newPage] 
+            } : p);
             localStorage.setItem("profeProjectsV2", JSON.stringify(updated));
             return updated;
         });
@@ -385,7 +462,6 @@ export default function Home() {
       </div>
   )
 
-  // --- EKRAN STARTOWY ---
   if (currentView === "landing") {
     return (
       <div className={`${darkMode ? "dark" : ""}`}>
@@ -395,12 +471,13 @@ export default function Home() {
           </div>
           <div className="flex flex-col sm:flex-row gap-8 items-center justify-center w-full max-w-5xl px-6">
             <button onClick={createNewProject} className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center transition-all duration-500">
-              <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
               <span className="text-4xl font-black uppercase tracking-tight">Nowy Projekt</span>
             </button>
-            <button onClick={() => setCurrentView("list")} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center transition-all duration-500">
-              <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-              <span className="text-4xl font-black uppercase tracking-tight">Archiwum</span>
+            <button onClick={() => {
+                if(projects.length > 0) { setActiveProjectId(projects[0].id); setActivePageId(projects[0].pages[0].id); loadPageToWorkspace(projects[0].id, projects[0].pages[0].id); setCurrentView("wizard"); } 
+                else { alert("Brak projektów. Stwórz nowy."); }
+            }} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center transition-all duration-500">
+              <span className="text-4xl font-black uppercase tracking-tight">Otwórz Warsztat</span>
             </button>
           </div>
         </div>
@@ -408,28 +485,50 @@ export default function Home() {
     );
   }
 
-  // --- ARCHIWUM ---
   if (currentView === "list") {
     return (
       <div className={`${darkMode ? "dark" : ""}`}>
         <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
           <nav className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-50 shadow-sm transition-colors duration-300">
             <div className="flex items-center space-x-10"><span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-red-600">Architect</span> OS</span></div>
-            <button onClick={() => setCurrentView("landing")} className="bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Wróć</button>
+            <div className="flex items-center space-x-4">
+              <button onClick={() => importProjectRef.current?.click()} className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 hover:bg-indigo-100 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Importuj Projekt JSON</button>
+              <input type="file" accept=".json" ref={importProjectRef} className="hidden" onChange={handleProjectImport} />
+              <button onClick={() => setCurrentView("landing")} className="bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Wróć</button>
+            </div>
           </nav>
-          <div className="flex-1 overflow-y-auto p-12"><div className="max-w-7xl mx-auto"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="flex-1 overflow-y-auto p-12">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex justify-between items-end mb-12">
+                <div><h2 className="text-4xl font-black dark:text-white tracking-tighter">Archiwum Projektów</h2></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 {projects.map(p => (
-                  <div key={p.id} className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl overflow-hidden flex flex-col group hover:-translate-y-2 transition-all duration-500">
-                    <div className="h-48 bg-gray-100 flex items-center justify-center relative"><iframe className="w-[200%] h-[200%] absolute origin-top-left scale-50 pointer-events-none" srcDoc={p.pages[0]?.htmlContent || ""} /></div>
-                    <div className="p-8"><h3 className="text-xl font-black uppercase">{p.name}</h3><p className="text-[10px] font-bold text-red-600 uppercase mb-6">{p.date}</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => { setActiveProjectId(p.id); setActivePageId(p.pages[0].id); loadPageToWorkspace(p.id, p.pages[0].id); setCurrentView("wizard"); }} className="bg-slate-900 text-white text-[10px] font-black uppercase py-3 rounded-xl hover:bg-black transition">Edytuj</button>
-                        <button onClick={() => deleteProject(p.id)} className="text-[10px] font-bold text-red-500 uppercase py-3 bg-red-50 hover:bg-red-100 rounded-xl transition">Usuń</button>
+                  <div key={p.id} className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl overflow-hidden flex flex-col group hover:-translate-y-2 transition-all duration-500 border border-gray-100 dark:border-slate-800">
+                    <div className="h-40 bg-gray-100 dark:bg-slate-800 flex items-center justify-center relative border-b border-gray-100 dark:border-slate-800">
+                      <iframe className="w-[200%] h-[200%] absolute origin-top-left scale-50 pointer-events-none" srcDoc={p.pages[0]?.htmlContent || ""} />
+                    </div>
+                    <div className="p-6 flex flex-col flex-1">
+                      <h3 className="text-xl font-black uppercase truncate text-slate-900 dark:text-white" title={p.name}>{p.name}</h3>
+                      
+                      {/* NOWE ZNACZNIKI CZASU */}
+                      <div className="text-[9px] font-bold text-gray-500 uppercase mt-3 mb-5 space-y-1">
+                        <p>Utworzono: <span className="text-red-600">{p.createdAt || p.date}</span></p>
+                        <p>Zaktualizowano: <span className="text-red-600">{p.updatedAt || p.date}</span></p>
+                        <p>Podstron w bazie: <span className="text-red-600">{p.pages.length}</span></p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 mt-auto">
+                        <button onClick={() => { setActiveProjectId(p.id); setActivePageId(p.pages[0].id); loadPageToWorkspace(p.id, p.pages[0].id); setCurrentView("wizard"); }} className="bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-black uppercase py-2.5 rounded-xl hover:bg-black transition">Edytuj</button>
+                        <button onClick={() => exportProjectJson(p)} className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 hover:bg-blue-100 text-[10px] font-black uppercase py-2.5 rounded-xl transition">Pobierz JSON</button>
+                        <button onClick={() => deleteProject(p.id)} className="col-span-2 text-[10px] font-bold text-red-500 uppercase py-2.5 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 rounded-xl transition mt-1">Usuń z archiwum</button>
                       </div>
                     </div>
                   </div>
                 ))}
-          </div></div></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -443,11 +542,11 @@ export default function Home() {
             <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => { saveCurrentWorkToProject(); setCurrentView("landing"); }}>Profe<span className="text-red-600">Architect</span></span>
             {activeProject && (
               <div className="flex items-center space-x-2 bg-gray-50 dark:bg-slate-800 p-1.5 rounded-xl border border-gray-200 dark:border-slate-700">
-                <select value={activeProjectId || ""} onChange={handleProjectChange} className="bg-transparent font-bold text-xs outline-none cursor-pointer text-gray-700 dark:text-gray-300 px-2 uppercase tracking-wide">
+                <select value={activeProjectId || ""} onChange={handleProjectChange} className="bg-transparent font-bold text-xs outline-none cursor-pointer text-gray-700 dark:text-gray-300 px-2 uppercase tracking-wide w-32 truncate">
                   {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
                 <span className="text-gray-300 dark:text-slate-600 font-bold">/</span>
-                <select value={activePageId || ""} onChange={handlePageChange} className="bg-transparent font-black text-xs outline-none cursor-pointer text-red-600 dark:text-red-500 px-2 uppercase tracking-wide">
+                <select value={activePageId || ""} onChange={handlePageChange} className="bg-transparent font-black text-xs outline-none cursor-pointer text-red-600 dark:text-red-500 px-2 uppercase tracking-wide w-32 truncate">
                   {activeProject.pages.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   <option value="NEW_PAGE" className="bg-red-50 text-red-700">+ Nowa Podstrona...</option>
                 </select>
@@ -455,11 +554,11 @@ export default function Home() {
             )}
           </div>
           <div className="flex items-center space-x-4">
-            <button onClick={() => { saveCurrentWorkToProject(); setCurrentView("list"); }} className="bg-transparent border border-gray-300 dark:border-slate-700 text-gray-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase transition">Archiwum</button>
+            <button onClick={() => { saveCurrentWorkToProject(); setCurrentView("list"); }} className="bg-transparent border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:text-red-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase transition">Archiwum</button>
             <button onClick={saveProjectAs} className="bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">💾 Zapisz jako...</button>
             <button onClick={saveCurrentWorkToProject} className="bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zapisz Stan</button>
             <button onClick={downloadFullProject} className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition shadow-lg">Wydaj Projekt</button>
-            <button onClick={() => signOut()} className="bg-transparent border border-gray-300 dark:border-slate-700 text-gray-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase transition">Wyloguj</button>
+            <button onClick={() => signOut()} className="bg-transparent border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-400 px-4 py-2 rounded-xl font-bold text-[10px] uppercase transition hover:text-red-500">Wyloguj</button>
           </div>
         </nav>
 
@@ -495,12 +594,12 @@ export default function Home() {
                         <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4">
                             <div className="flex justify-between items-center mb-3">
                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Zdjęcia na stronę (Assety)</span>
-                               <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold text-red-600 uppercase bg-red-50 px-3 py-1 rounded-lg">+ Dodaj</button>
+                               <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold text-red-600 uppercase bg-red-50 px-3 py-1 rounded-lg hover:bg-red-100 transition">+ Dodaj</button>
                                <input type="file" multiple accept="image/*" ref={fileInputRef} className="hidden" onChange={(e) => processImageUpload(e, false)} />
                             </div>
                             <div className="flex flex-wrap gap-2">
                                {images.map(img => (
-                                   <div key={img.name} className="relative w-10 h-10 rounded bg-gray-200 group"><img src={img.dataUrl} className="w-full h-full object-cover rounded" /><button onClick={() => setImages(images.filter(i=>i.name!==img.name))} className="absolute inset-0 bg-red-600/90 text-white text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center">X</button></div>
+                                   <div key={img.name} className="relative w-10 h-10 rounded bg-gray-200 group"><img src={img.dataUrl} className="w-full h-full object-cover rounded" /><button onClick={() => removeImage(img.name)} className="absolute inset-0 bg-red-600/90 text-white text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center">X</button></div>
                                ))}
                             </div>
                         </div>
@@ -537,7 +636,7 @@ export default function Home() {
                       ))}
                     </div>
                     <div className="flex space-x-1 bg-gray-100 dark:bg-slate-900 rounded-xl p-1">
-                       <button onClick={() => setShowCode(false)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!showCode ? "bg-white text-red-600" : "text-gray-400"}`}>Podgląd</button>
+                       <button onClick={() => setShowCode(false)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!showCode ? "bg-white text-red-600" : "text-gray-400"}`}>Podgląd Wizualny</button>
                        <button onClick={() => setShowCode(true)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${showCode ? "bg-white text-red-600" : "text-gray-400"}`}>Kod HTML</button>
                     </div>
                   </div>
