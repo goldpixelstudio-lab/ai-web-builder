@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { signIn, signOut, useSession } from "next-auth/react"; // <- Autoryzacja
+import { signIn, signOut, useSession } from "next-auth/react";
 
 interface Project {
   id: string;
@@ -16,7 +16,7 @@ interface UploadedImage {
 }
 
 export default function Home() {
-  const { data: session, status } = useSession(); // <- Sprawdzanie stanu logowania
+  const { data: session, status } = useSession();
 
   const [currentView, setCurrentView] = useState<"landing" | "list" | "wizard">("landing");
   const [projects, setProjects] = useState<Project[]>([]);
@@ -305,7 +305,6 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  // EKRAN LOGOWANIA - ZABLOKOWANIE APLIKACJI
   if (status === "loading") {
     return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-bold tracking-widest uppercase text-sm">Weryfikacja tożsamości...</div>;
   }
@@ -314,7 +313,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center font-sans">
           <div className="text-center mb-10">
-            <h1 className="text-5xl font-black tracking-tighter text-white uppercase">Profe<span className="text-blue-600">Architect</span> OS</h1>
+            <h1 className="text-5xl font-black tracking-tighter text-white uppercase">Profe<span className="text-red-600">Architect</span> OS</h1>
             <p className="text-xs font-bold tracking-[0.3em] text-red-500 uppercase mt-4">Dostęp ściśle strzeżony</p>
           </div>
           <button onClick={() => signIn('google')} className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] flex items-center">
@@ -331,19 +330,18 @@ export default function Home() {
     )
   }
 
-  // WŁAŚCIWA APLIKACJA PO ZALOGOWANIU
   if (currentView === "landing") {
     return (
       <div className={`${darkMode ? "dark" : ""}`}>
         <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center justify-center font-sans transition-colors duration-300">
           <div className="absolute top-8 text-center w-full">
-            <h1 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Profe<span className="text-blue-600">Architect</span> OS</h1>
+            <h1 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Profe<span className="text-red-600">Architect</span> OS</h1>
             <p className="text-sm font-bold tracking-widest text-gray-400 uppercase mt-2">Zalogowany jako {session?.user?.email}</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-8 items-center justify-center w-full max-w-5xl px-6">
-            <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); }} className="w-full sm:w-1/2 bg-blue-600 hover:bg-blue-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:shadow-blue-500/40 transition-all duration-500 hover:-translate-y-3 group flex flex-col items-center">
+            <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); }} className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:shadow-red-500/40 transition-all duration-500 hover:-translate-y-3 group flex flex-col items-center">
               <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
-              <span className="text-4xl font-black uppercase tracking-tight">Otwórz Warsztat</span>
+              <span className="text-4xl font-black uppercase tracking-tight">Nowy Projekt</span>
             </button>
             <button onClick={() => setCurrentView("list")} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:shadow-gray-900/40 transition-all duration-500 hover:-translate-y-3 group flex flex-col items-center">
               <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
@@ -362,7 +360,7 @@ export default function Home() {
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
         <nav className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-50 shadow-sm transition-colors duration-300">
           <div className="flex items-center space-x-10">
-            <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-blue-600">Architect</span></span>
+            <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-red-600">Architect</span></span>
             <div className="relative">
               <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center text-gray-600 dark:text-slate-400 hover:text-blue-600 font-bold uppercase text-[11px] tracking-widest">
                 Menu <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
@@ -460,7 +458,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* ZAKTUALIZOWANA SEKCJA ZDJĘĆ Z PODPISAMI */}
                 <div className="px-6 pb-2">
                     <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4">
                         <div className="flex justify-between items-center mb-3">
@@ -478,7 +475,6 @@ export default function Home() {
                                            <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
                                            <button onClick={() => removeImage(img.name)} className="absolute inset-0 bg-red-600/90 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center">X</button>
                                        </div>
-                                       {/* WYRAŹNA ETYKIETA NAZWY PLIKU */}
                                        <span className="text-[8px] font-bold text-gray-600 dark:text-gray-300 mt-1.5 w-full text-center truncate bg-gray-200 dark:bg-slate-700 px-1 py-0.5 rounded shadow-sm" title={img.name}>
                                          {img.name}
                                        </span>
