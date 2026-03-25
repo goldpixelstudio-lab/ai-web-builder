@@ -68,11 +68,10 @@ export default function Home() {
     let promptToSend = input.trim();
 
     if (!promptToSend) {
-      // AUTOPILOT - ZAMIANA LOGIKI ETAPU 2 i 3
-      if (activeStep === 1) promptToSend = "Zbuduj strategię i architekturę (Dokument 1, 9, 10, 12) dla nowej, profesjonalnej strony.";
-      else if (activeStep === 2) promptToSend = "Opracuj rygorystyczną optymalizację SEO i zalecenia dla wyszukiwarek bazujących na AI (Dokument 11).";
-      else if (activeStep === 3) promptToSend = "Bazując na ustalonej strategii i optymalizacji SEO, wygeneruj powalający kod wizualny HTML+Tailwind, zachowując asymetrię i nowoczesny design.";
-      else if (activeStep === 4) promptToSend = "Zmapuj cały wygenerowany projekt na środowisko Joomla i SP Page Builder (Dokument 2, 3, 7, 13).";
+      if (activeStep === 1) promptToSend = "Zbuduj kompleksową strategię i architekturę informacji (Dokumenty 1, 9, 10, 12) dla tego projektu, opartą na głębokiej analizie biznesowej.";
+      else if (activeStep === 2) promptToSend = "Opracuj rygorystyczną optymalizację SEO, dobór słów kluczowych oraz kod JSON-LD dopasowany do branży (Dokument 11).";
+      else if (activeStep === 3) promptToSend = "Wygeneruj w pełni semantyczny, dostępny i responsywny kod HTML z użyciem Tailwind v4. Zastosuj nowoczesny design (fluid typography, glassmorphism), wdrażając wytyczne z poprzednich etapów i JSON-LD w sekcji head.";
+      else if (activeStep === 4) promptToSend = "Zmapuj cały wygenerowany projekt na architekturę Joomla oraz SP Page Builder (Dokumenty 2, 3, 7, 13).";
       
       setInput(promptToSend);
     }
