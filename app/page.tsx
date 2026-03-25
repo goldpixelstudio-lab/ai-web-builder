@@ -30,17 +30,36 @@ export default function Home() {
     mobile: "390px",
   };
 
+  // ŁADOWANIE ZAPISANEGO STANU (PERSISTENT STATE)
   useEffect(() => {
     const savedProjects = localStorage.getItem("profeProjects");
     if (savedProjects) setProjects(JSON.parse(savedProjects));
+    
     const savedTheme = localStorage.getItem("profeTheme");
     if (savedTheme === "dark") setDarkMode(true);
+
+    const activeDocs = localStorage.getItem("profeActiveDocs");
+    if (activeDocs) setDocuments(JSON.parse(activeDocs));
+
+    const activeHtml = localStorage.getItem("profeActiveHtml");
+    if (activeHtml) setHtmlContent(activeHtml);
   }, []);
 
   const toggleTheme = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
     localStorage.setItem("profeTheme", newMode ? "dark" : "light");
+  };
+
+  const resetSession = () => {
+    if (confirm("Czy na pewno chcesz zresetować bieżącą sesję roboczą? Niezapisane zmiany zostaną usunięte.")) {
+        setDocuments({});
+        setHtmlContent(null);
+        setInput("");
+        setActiveStep(1);
+        localStorage.removeItem("profeActiveDocs");
+        localStorage.removeItem("profeActiveHtml");
+    }
   };
 
   const saveProject = () => {
@@ -53,7 +72,7 @@ export default function Home() {
     const updated = [...projects, newProject];
     setProjects(updated);
     localStorage.setItem("profeProjects", JSON.stringify(updated));
-    alert("Projekt zapisany pomyślnie!");
+    alert("Projekt zapisany pomyślnie w Archiwum!");
   };
 
   const deleteProject = (id: string) => {
@@ -64,10 +83,10 @@ export default function Home() {
 
   const applyAutopilot = () => {
     let basePrompt = "";
-    if (activeStep === 1) basePrompt = `Zbuduj potężną strategię dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie i uwzględnij autentyczną ofertę (Teddy Eddie, Savvy Ed).`;
-    else if (activeStep === 2) basePrompt = `Opracuj SUROWY kod JSON-LD i listę 10 fraz kluczowych SEO. ŻADNYCH RAD I TEORII. Zwróć tylko konkrety oparte na poniższej wiedzy.`;
-    else if (activeStep === 3) basePrompt = `Wygeneruj PEŁNY kod HTML. ZABRONIONE SĄ PLACEHOLDERY typu "Usługa 1". Użyj precyzyjnie tekstów z poniższego kontekstu. Zbuduj 6 potężnych sekcji w luksusowym designie.`;
-    else if (activeStep === 4) basePrompt = `Zmapuj projekt na Joomla i SP Page Builder (Dokumenty 2, 3, 7, 13).`;
+    if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie.`;
+    else if (activeStep === 2) basePrompt = `Wygeneruj ultra profesjonalną mapę słów i fraz kluczowych (Topical Map) oraz kod JSON-LD oparty o zgromadzone dane. Żadnych porad!`;
+    else if (activeStep === 3) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny, luksusowy kod HTML + Tailwind. Sam zadecyduj o najlepszej architekturze na bazie Strategii. Użyj prawdziwych tekstów. Zero placeholdrów.`;
+    else if (activeStep === 4) basePrompt = `Zmapuj projekt na Joomla i SP Page Builder.`;
 
     let projectContext = "";
     if (activeStep > 1 && Object.keys(documents).length > 0) {
@@ -77,7 +96,7 @@ export default function Home() {
       if (documents.doc11) projectContext += `SEO:\n${documents.doc11.substring(0, 800)}...\n`;
       projectContext += "----------------------------------------------\n";
     } else if (activeStep > 1) {
-      projectContext = "\n\n⚠️ UWAGA: Brak danych z Etapu 1. Najpierw wygeneruj Etap 1!";
+      projectContext = "\n\n⚠️ UWAGA: Brak danych z Etapu 1 w pamięci podręcznej. Najpierw wygeneruj Etap 1!";
     }
 
     setInput(basePrompt + projectContext);
@@ -86,9 +105,8 @@ export default function Home() {
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
     
-    // Jeśli użytkownik zignorował brak danych w E2 i E3
     if (activeStep > 1 && input.includes("Brak danych z Etapu 1")) {
-      alert("Najpierw musisz wygenerować Strategię w Etapie 1, aby AI miało dane do pracy!");
+      alert("Najpierw musisz wygenerować Strategię w Etapie 1!");
       return;
     }
 
@@ -129,6 +147,7 @@ export default function Home() {
           if (d12) newDocs["doc12"] = d12;
           
           setDocuments(newDocs);
+          localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
         }
 
         if (activeStep === 2) {
@@ -139,6 +158,7 @@ export default function Home() {
             const newDocs: Record<string, string> = { ...documents };
             newDocs["doc11"] = doc11;
             setDocuments(newDocs);
+            localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
           }
         }
 
@@ -157,6 +177,7 @@ export default function Home() {
           if (html) {
             let cleanHtml = html.replace(/```html/gi, "").replace(/```/g, "").trim();
             setHtmlContent(cleanHtml);
+            localStorage.setItem("profeActiveHtml", cleanHtml);
           }
         }
 
@@ -167,6 +188,7 @@ export default function Home() {
           const doc7 = extractDoc("DOC_7"); if (doc7) newDocs["doc7"] = doc7;
           const doc13 = extractDoc("DOC_13"); if (doc13) newDocs["doc13"] = doc13;
           setDocuments(newDocs);
+          localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
         }
 
         setTimeout(() => setInput(""), 3000);
@@ -196,7 +218,7 @@ export default function Home() {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; scroll-behavior: smooth; }</style>
 </head>
-<body class="bg-slate-950 text-slate-100">
+<body class="bg-gray-50 text-slate-900">
     ${htmlContent}
     <script>lucide.createIcons();</script>
 </body>
@@ -222,13 +244,13 @@ export default function Home() {
             <p className="text-sm font-bold tracking-widest text-gray-400 uppercase mt-2">Enterprise Deployment System</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-8 items-center justify-center w-full max-w-5xl px-6">
-            <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); }} className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:shadow-red-500/40 transition-all duration-500 hover:-translate-y-3 group flex flex-col items-center">
+            <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); }} className="w-full sm:w-1/2 bg-blue-600 hover:bg-blue-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:shadow-blue-500/40 transition-all duration-500 hover:-translate-y-3 group flex flex-col items-center">
               <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
-              <span className="text-4xl font-black uppercase tracking-tight">Nowy Projekt</span>
+              <span className="text-4xl font-black uppercase tracking-tight">Otwórz Warsztat</span>
             </button>
             <button onClick={() => setCurrentView("list")} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:shadow-gray-900/40 transition-all duration-500 hover:-translate-y-3 group flex flex-col items-center">
               <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-              <span className="text-4xl font-black uppercase tracking-tight">Wszystkie Projekty</span>
+              <span className="text-4xl font-black uppercase tracking-tight">Archiwum</span>
             </button>
           </div>
           <button onClick={toggleTheme} className="fixed bottom-8 right-8 p-4 bg-white dark:bg-slate-800 rounded-full shadow-xl border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-white">{darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}</button>
@@ -245,22 +267,23 @@ export default function Home() {
             <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-blue-600">Architect</span></span>
             <div className="relative">
               <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center text-gray-600 dark:text-slate-400 hover:text-blue-600 font-bold uppercase text-[11px] tracking-widest">
-                Projekty <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                Menu <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
               </button>
               {menuOpen && (
                 <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden py-2 border border-gray-100 dark:border-slate-700 z-[100]">
-                  <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-red-600">Nowy projekt</button>
-                  <button onClick={() => { setCurrentView("list"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-gray-700 dark:text-white">Wszystkie projekty</button>
+                  <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-blue-600">Warsztat Roboczy</button>
+                  <button onClick={() => { setCurrentView("list"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-gray-700 dark:text-white">Archiwum</button>
                 </div>
               )}
             </div>
           </div>
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-4">
             <button onClick={toggleTheme} className="p-2 text-gray-500 hover:text-blue-600 transition-colors">{darkMode ? "☀️" : "🌙"}</button>
             {currentView === "wizard" && (
               <>
-                <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="bg-gray-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 w-64 dark:text-white" />
-                <button onClick={saveProject} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition shadow-lg shadow-blue-500/20">Zapisz Projekt</button>
+                <button onClick={resetSession} className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zresetuj Sesję</button>
+                <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="bg-gray-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 w-48 dark:text-white" />
+                <button onClick={saveProject} className="bg-gray-900 dark:bg-white dark:text-slate-900 hover:bg-black text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition">Zapisz Projekt</button>
               </>
             )}
           </div>
@@ -271,7 +294,6 @@ export default function Home() {
             <div className="max-w-7xl mx-auto">
               <div className="flex justify-between items-end mb-12">
                 <div><h2 className="text-4xl font-black dark:text-white tracking-tighter">Archiwum Projektów</h2></div>
-                <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); }} className="bg-red-600 text-white px-8 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 shadow-xl shadow-red-500/20 transition-all">Nowy Projekt</button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 {projects.map(p => (
@@ -283,8 +305,7 @@ export default function Home() {
                       <h3 className="text-xl font-black dark:text-white mb-1 uppercase tracking-tight">{p.name}</h3>
                       <p className="text-[10px] font-bold text-blue-600 uppercase mb-6 tracking-widest">{p.date}</p>
                       <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => { setCurrentProjectName(p.name); setCurrentView("wizard"); }} className="bg-slate-900 dark:bg-slate-700 text-white text-[10px] font-black uppercase py-3 rounded-xl hover:bg-black transition">Edytuj</button>
-                        <button onClick={() => deleteProject(p.id)} className="text-[10px] font-bold text-red-500 uppercase py-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 rounded-xl transition">Usuń</button>
+                        <button onClick={() => deleteProject(p.id)} className="col-span-2 text-[10px] font-bold text-red-500 uppercase py-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 rounded-xl transition">Usuń z archiwum</button>
                       </div>
                     </div>
                   </div>
@@ -311,33 +332,33 @@ export default function Home() {
                 ))}
               </div>
               <div className="ml-8 flex space-x-4">
-                <button onClick={() => setActiveStep((activeStep + 1) as any)} disabled={activeStep === 4} className="bg-black dark:bg-white dark:text-black text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl disabled:opacity-20">Następny Krok</button>
+                <button onClick={() => setActiveStep((activeStep + 1) as any)} disabled={activeStep === 4} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl disabled:opacity-20">Dalej</button>
               </div>
             </div>
 
             <div className="flex-1 flex overflow-hidden">
               <div className="w-[450px] bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col shrink-0">
                 <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-800">
-                  <h3 className="font-black uppercase tracking-tighter text-lg dark:text-white">Expert System V11</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Etap {activeStep}: Aktywne zadania</p>
+                  <h3 className="font-black uppercase tracking-tighter text-lg dark:text-white">Expert System V12</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Status: Aktywny</p>
                 </div>
                 <div className="flex-1 p-6 overflow-y-auto space-y-2 text-[11px] font-bold uppercase tracking-tight text-gray-500">
-                  {activeStep === 1 && ["Dokument 1: Strategia", "Dokument 9: Copy", "Dokument 10: Premium Polish", "Dokument 12: Asset Plan"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                  {activeStep === 2 && ["Dokument 11: SEO / AI Search"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                  {activeStep === 3 && ["Silnik Wizualny (Render HTML)", "Aplikacja Stylów Tailwind", "Implementacja Lucide Icons"].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
-                  {activeStep === 4 && ["Dokument 2: SPPB Layout", "Dokument 3: Excel Matrix", "Dokument 7: Master Handoff", "Dokument 13: QA Checklist"].map(d => <div key={d} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 rounded-xl border border-blue-100 dark:border-blue-800/50">{d}</div>)}
+                  {activeStep === 1 && ["Analiza Biznesowa", "Projekt Architektury", "Copywriting Premium"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
+                  {activeStep === 2 && ["Analiza Fraz Kluczowych (Topical Map)", "Generowanie JSON-LD", "Optymalizacja Meta"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
+                  {activeStep === 3 && ["Samodzielne Projektowanie Layoutu", "Generowanie kodu HTML", "Aplikacja CSS Tailwind"].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
+                  {activeStep === 4 && ["Mapowanie SP Page Builder", "Przygotowanie paczki Joomla", "Wdrożenie"].map(d => <div key={d} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 rounded-xl border border-blue-100 dark:border-blue-800/50">{d}</div>)}
                 </div>
                 <div className="p-6 border-t border-gray-100 dark:border-slate-800">
-                  <button onClick={applyAutopilot} className="w-full mb-4 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition uppercase tracking-widest text-[10px]">1. Załaduj Kontekst (Autopilot)</button>
+                  <button onClick={applyAutopilot} className="w-full mb-4 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition uppercase tracking-widest text-[10px]">1. Załaduj Kontekst z Pamięci</button>
                   <textarea 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-4 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" 
-                    rows={8} 
-                    placeholder="Kliknij przycisk powyżej, aby załadować polecenie i wiedzę..."
+                    rows={6} 
+                    placeholder="Wprowadź polecenie..."
                   ></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20'}`}>
-                    {isLoading ? "Przetwarzanie..." : "2. Generuj Operacyjnie"}
+                    {isLoading ? "Przetwarzanie..." : "2. Generuj Wynik"}
                   </button>
                 </div>
               </div>
@@ -357,17 +378,17 @@ export default function Home() {
                   {activeStep === 1 && (
                     Object.keys(documents).length === 0 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest">Oczekiwanie na dane ze strategii...</p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Brak danych w pamięci sesji.<br/>Załaduj kontekst (1) i generuj (2).</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
                         {["doc1", "doc9", "doc10", "doc12"].map(key => documents[key] && (
                           <div key={key} className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
                             <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                              {key === "doc1" && "Dokument 1 — Strategia i architektura"}
-                              {key === "doc9" && "Dokument 9 — Handoff dla copywritera"}
-                              {key === "doc10" && "Dokument 10 — Wersja redakcyjna (Premium)"}
-                              {key === "doc12" && "Dokument 12 — Asset plan"}
+                              {key === "doc1" && "Architektura i Strategia Konwersji"}
+                              {key === "doc9" && "Handoff Copywriterski"}
+                              {key === "doc10" && "Wsad Tekstowy"}
+                              {key === "doc12" && "Plan Mediów"}
                             </h3>
                             <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents[key]}</div>
                           </div>
@@ -379,15 +400,12 @@ export default function Home() {
                   {activeStep === 2 && (
                     !documents.doc11 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
-                          Oczekiwanie na analizę SEO... <br/>
-                          <span className="text-sm opacity-70 mt-2 block">Załaduj kontekst (1) i generuj (2).</span>
-                        </p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Załaduj kontekst z pamięci i generuj mapę SEO.</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
                         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
-                          <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Dokument 11 — Wersja SEO / AI Search Visibility</h3>
+                          <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Topical Map & JSON-LD</h3>
                           <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc11}</div>
                         </div>
                       </div>
@@ -397,18 +415,15 @@ export default function Home() {
                   {activeStep === 3 && (
                     !htmlContent ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
-                          Oczekiwanie na render wizualny... <br/>
-                          <span className="text-sm opacity-70 mt-2 block">Załaduj kontekst (1) i generuj (2).</span>
-                        </p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Załaduj kontekst z pamięci i pozwól AI wygenerować kod.</p>
                       </div>
                     ) : (
                       <div className="space-y-8">
                         <div className="flex justify-center w-full">
-                          <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-slate-950 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-800 relative">
+                          <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-gray-50 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-200 relative">
                             <iframe className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" srcDoc={`
                               <!DOCTYPE html>
-                              <html lang="pl" class="antialiased dark">
+                              <html lang="pl" class="antialiased">
                                 <head>
                                   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
                                   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
@@ -416,7 +431,7 @@ export default function Home() {
                                   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
                                   <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; scroll-behavior: smooth; }</style>
                                 </head>
-                                <body class="bg-slate-950 text-slate-100">
+                                <body class="bg-gray-50 text-slate-900">
                                   ${htmlContent}
                                   <script>lucide.createIcons();</script>
                                 </body>
@@ -443,20 +458,17 @@ export default function Home() {
                     <div className="space-y-6">
                       {Object.keys(documents).filter(k => ["doc2", "doc3", "doc7", "doc13"].includes(k)).length === 0 ? (
                         <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                          <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
-                            Oczekiwanie na dokumentację wdrożeniową... <br/>
-                            <span className="text-sm opacity-70 mt-2 block">Załaduj kontekst (1) i generuj (2).</span>
-                          </p>
+                          <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Załaduj kontekst z pamięci i zmapuj projekt pod SP Page Builder.</p>
                         </div>
                       ) : (
                         <>
                           {["doc2", "doc3", "doc7", "doc13"].map(key => documents[key] && (
                             <div key={key} className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
                               <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                                {key === "doc2" && "Dokument 2 — Architektura SP Page Builder"}
-                                {key === "doc3" && "Dokument 3 — Tabela wdrożeniowa"}
-                                {key === "doc7" && "Dokument 7 — Master Handoff"}
-                                {key === "doc13" && "Dokument 13 — QA / Audit Checklist"}
+                                {key === "doc2" && "Architektura SP Page Builder"}
+                                {key === "doc3" && "Tabela wdrożeniowa"}
+                                {key === "doc7" && "Master Handoff"}
+                                {key === "doc13" && "QA / Audit Checklist"}
                               </h3>
                               <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents[key]}</div>
                             </div>
