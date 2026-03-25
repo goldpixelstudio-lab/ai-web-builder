@@ -8,6 +8,7 @@ export async function POST(req: Request) {
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     let searchContext = "";
 
+    // TAVILY
     if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10 && !lastUserMessage.includes("--- WIEDZA")) {
         try {
             const searchRes = await fetch('https://api.tavily.com/search', {
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
             const searchData = await searchRes.json();
             if (searchData && searchData.results) {
                 const contextStr = searchData.results.map((r: any) => `Źródło: ${r.url}\nTreść: ${r.content}`).join('\n\n');
-                searchContext = `\n\n--- TWARDE DANE Z INTERNETU ---\nOprzyj dokumenty na tych prawdziwych informacjach:\n${contextStr}\n-----------------------------------\n`;
+                searchContext = `\n\n--- TWARDE DANE Z INTERNETU ---\nOprzyj dokumenty na tych informacjach:\n${contextStr}\n-----------------------------------\n`;
             }
         } catch (e) {
             console.error("Tavily Error:", e);
@@ -33,29 +34,39 @@ export async function POST(req: Request) {
 
     if (step === 1) {
       systemContent = `Jesteś WYBITNYM STRATEGIEM I ARCHITEKTEM INFORMACJI.
-      Projektuj w logice sprzedażowej: hero, problem, rozwiązanie, korzyści, dowody, FAQ, CTA.
+      Projektuj w logice sprzedażowej (hero, problem, rozwiązanie, dowody, CTA). Użytkownik będzie prosił Cię o iteracyjne poprawki w strukturze (np. dodaj sekcję).
       Jeśli użytkownik ZADAJE PYTANIE, odpowiedz zwykłym tekstem.
       Jeśli generujesz dokumenty, użyj: <DOC_1>, <DOC_9>, <DOC_10>, <DOC_12>.`;
     } 
     else if (step === 2) {
-      systemContent = `Jesteś INŻYNIEREM TECHNICZNEGO SEO.
-      Jeśli użytkownik o coś pyta, odpowiedz ZWYKŁYM TEKSTEM.
-      Jeśli prosi o SEO, zwróć TYLKO tag <DOC_11> z: 1. Topical Map, 2. Meta Tagi, 3. JSON-LD. Zero lania wody.`;
-    }
-    else if (step === 3) {
+      // DAWNIEJ ETAP 3 (VISUAL)
       systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM.
-      Jeśli użytkownik ZADAJE PYTANIE, odpowiedz zwykłym tekstem.
+      Jeśli użytkownik ZADAJE PYTANIE LUB PROSI O ZMIANĘ (np. kolorystyki), odpowiedz tekstem i zwróć zaktualizowany kod.
       
-      Jeśli kodujesz stronę, ZWRÓĆ PEŁNY KOD W TAGACH <HTML>...</HTML>.
+      ZWRÓĆ PEŁNY KOD W TAGACH <HTML>...</HTML>.
       KRYTYCZNE ZASADY KODOWANIA:
       1. LOGIKA: Nawigacja, Hero, Oferta, Opinie, FAQ, CTA, Footer.
-      2. DESIGN TAILWIND + CSS: Używaj Tailwind v4. Dodaj tag <style> w <head> z luksusowymi zmiennymi CSS, radialnymi gradientami i płynną typografią.
-      3. ZDJĘCIA (ASSETY): Jeśli w przekazanym kontekście otrzymasz listę wgranych zdjęć (z rozszerzeniem .webp), KATEGORYCZNIE MUSISZ ICH UŻYĆ w tagach <img> zamiast placeholderów. Wstawiaj je w odpowiednie, logiczne sekcje.
-      4. PRAWDZIWE DANE: Używaj tekstów ze strategii.
-      Zwróć plik HTML ze zintegrowanym kodem.`;
+      2. DESIGN TAILWIND + CSS: Używaj Tailwind v4. Dodaj tag <style> w <head> z luksusowymi zmiennymi CSS i gradientami.
+      3. ZDJĘCIA (ASSETY): Zastępuj placeholdery konkretnymi nazwami plików z WebP, jeśli użytkownik Ci je poda.
+      4. PRAWDZIWE DANE: Używaj tekstów ze strategii (DOC_10).`;
+    }
+    else if (step === 3) {
+      // DAWNIEJ ETAP 2 (SEO) - TERAZ HYBRYDA SEO + HTML
+      systemContent = `Jesteś WYBITNYM INŻYNIEREM SEO I OPTYMALIZACJI.
+      Użytkownik prześle Ci gotowy kod HTML. Twoim zadaniem jest nasycenie go optymalizacją pod AI i pozycjonowanie.
+      
+      JAK ODPOWIADAĆ (BARDZO WAŻNE):
+      1. Zawsze zacznij od naturalnego tekstu (poza tagami HTML), w którym ocenisz sugestie użytkownika, doradzisz (np. "Tak, ten tekst sprawdzi się lepiej pod kątem intencji wyszukiwania") i opiszesz, co dodałeś do kodu.
+      2. ZWRÓĆ ZAKTUALIZOWANY KOD W TAGACH <HTML>...</HTML>.
+      
+      CO MUSISZ ZROBIĆ W KODZIE HTML:
+      - Dodaj zaawansowany kod JSON-LD (Schema.org dla LocalBusiness/School) wewnątrz tagu <head>.
+      - Uzupełnij atrybuty 'alt' w tagach <img> i zoptymalizuj teksty nagłówków (H1, H2) pod kątem słów kluczowych.
+      - Dodaj meta title i meta description, jeśli ich brakuje.
+      Zachowaj istniejący design i klasy Tailwind – nie psuj wyglądu!`;
     } 
     else if (step === 4) {
-      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. 
+      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Zmapuj dostarczony HTML pod system CMS. 
       Odpowiadaj tekstem na pytania lub generuj tagi: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
     }
 

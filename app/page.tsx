@@ -160,9 +160,9 @@ export default function Home() {
 
   const applyAutopilot = () => {
     let basePrompt = "";
-    if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie i oprzyj dokumenty o prawdziwe dane.`;
-    else if (activeStep === 2) basePrompt = `Wygeneruj ultra profesjonalną mapę słów (Topical Map) oraz kod JSON-LD na bazie zgromadzonych danych. Zwróć dokument 11.`;
-    else if (activeStep === 3) basePrompt = `Działaj jako Senior Dev. Wygeneruj nowoczesny, luksusowy kod HTML. Zastosuj wytyczne o zmiennych CSS, BENTO GRID, asymetrii. Użyj prawdziwych tekstów. Zero placeholdrów. Zwróć tylko kod HTML.`;
+    if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla "Profe Studio Radomsko". Ustal konkretną strukturę, nagłówki i copy. Wyszukaj ich w sieci.`;
+    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj nowoczesny, luksusowy kod HTML na bazie Strategii z Etapu 1. Zastosuj wytyczne o CSS, Tailwind, BENTO GRID, asymetrii. Wstaw załączone zdjęcia.`;
+    else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Przeanalizuj obecny kod HTML. Uzupełnij atrybuty alt, zoptymalizuj nagłówki pod kątem pozycjonowania (np. kursy językowe Radomsko) i wygeneruj pełny kod JSON-LD (Schema). Zwróć ulepszony HTML i krótko opisz, co zmieniłeś.`;
     else if (activeStep === 4) basePrompt = `Zmapuj projekt na Joomla i SP Page Builder.`;
     setInput(basePrompt);
   };
@@ -178,15 +178,12 @@ export default function Home() {
       if (documents.doc1) projectContext += `STRATEGIA:\n${documents.doc1.substring(0, 500)}...\n\n`;
       if (documents.doc10) projectContext += `TEKSTY (BARDZO WAŻNE):\n${documents.doc10}\n`;
     }
-    if (activeStep === 2 && documents.doc11) {
-      projectContext += `\n--- OBECNY DOKUMENT SEO ---\n${documents.doc11}\n`;
+    if ((activeStep === 2 || activeStep === 3) && htmlContent) {
+      projectContext += `\n--- OBECNY KOD WIZUALNY STRONY (do modyfikacji/optymalizacji) ---\n${htmlContent}\n`;
     }
-    if (activeStep === 3 && htmlContent) {
-      projectContext += `\n--- OBECNY KOD WIZUALNY ---\n${htmlContent}\n`;
-    }
-    if (images.length > 0) {
+    if (images.length > 0 && (activeStep === 2 || activeStep === 3)) {
         const imageNames = images.map(img => img.name).join(", ");
-        projectContext += `\n--- DOSTĘPNE ZDJĘCIA (ASSETY) ---\nUżytkownik wgrał pliki graficzne: ${imageNames}.\nMusisz użyć ich w tagach img (np. src="${images[0].name}") zamiast używać zewnętrznych placeholderów w odpowiednich miejscach.\n`;
+        projectContext += `\n--- DOSTĘPNE ZDJĘCIA ---\nUżytkownik wgrał pliki graficzne: ${imageNames}. Użyj ich w tagach img (np. src="${images[0].name}") zamiast placeholderów.\n`;
     }
 
     const payloadMessage = input + projectContext;
@@ -201,7 +198,7 @@ export default function Home() {
       
       if (data.reply) {
         let aiText = data.reply;
-        let isCodeOrDocGenerated = false;
+        let isDocGenerated = false;
         
         const extractDoc = (tag: string) => {
           const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
@@ -219,35 +216,10 @@ export default function Home() {
             if (d12) newDocs["doc12"] = d12;
             setDocuments(newDocs);
             localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
-            isCodeOrDocGenerated = true;
+            isDocGenerated = true;
           }
         }
-        if (activeStep === 2) {
-          let doc11 = extractDoc("DOC_11");
-          if (doc11) {
-            const newDocs = { ...documents, doc11 };
-            setDocuments(newDocs);
-            localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
-            isCodeOrDocGenerated = true;
-          }
-        }
-        if (activeStep === 3) {
-          let html = extractDoc("HTML");
-          if (!html) {
-            const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
-            if (mdMatch) html = mdMatch[1];
-          }
-          if (!html) {
-             const docMatch = aiText.match(/(<!DOCTYPE html>[\s\S]*<\/html>)/i);
-             if (docMatch) html = docMatch[1];
-          }
-          if (html) {
-            let cleanHtml = html.replace(/```html/gi, "").replace(/```/g, "").trim();
-            setHtmlContent(cleanHtml);
-            localStorage.setItem("profeActiveHtml", cleanHtml);
-            isCodeOrDocGenerated = true;
-          }
-        }
+        
         if (activeStep === 4) {
           let doc2 = extractDoc("DOC_2");
           if (doc2) {
@@ -258,11 +230,41 @@ export default function Home() {
             const doc13 = extractDoc("DOC_13"); if (doc13) newDocs["doc13"] = doc13;
             setDocuments(newDocs);
             localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
-            isCodeOrDocGenerated = true;
+            isDocGenerated = true;
           }
         }
 
-        if (!isCodeOrDocGenerated) setAiResponseText(aiText);
+        // WYCIĄGANIE KODU HTML W ETAPIE 2 ORAZ 3
+        let html = extractDoc("HTML");
+        if (!html) {
+          const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
+          if (mdMatch) html = mdMatch[1];
+        }
+        if (!html) {
+           const docMatch = aiText.match(/(<!DOCTYPE html>[\s\S]*<\/html>)/i);
+           if (docMatch) html = docMatch[1];
+        }
+        
+        if (html) {
+          let cleanHtml = html.replace(/```html/gi, "").replace(/```/g, "").trim();
+          setHtmlContent(cleanHtml);
+          localStorage.setItem("profeActiveHtml", cleanHtml);
+          
+          // Usuwamy kod HTML z odpowiedzi AI, aby w okienku zostawić sam czysty tekst porad/odpowiedzi
+          aiText = aiText.replace(new RegExp(`<HTML>[\\s\\S]*?<\\/HTML>`, 'i'), "")
+                         .replace(/```html[\s\S]*?```/i, "")
+                         .replace(/(<!DOCTYPE html>[\s\S]*<\/html>)/i, "")
+                         .trim();
+        }
+
+        // Zawsze ustawiamy odpowiedź AI, jeśli zostało w niej jakieś słowo (po wycięciu tagów HTML i XML)
+        const cleanAiText = aiText.replace(/<DOC_[0-9]+>[\s\S]*?<\/DOC_[0-9]+>/gi, "").trim();
+        if (cleanAiText) {
+           setAiResponseText(cleanAiText);
+        } else if (isDocGenerated) {
+           setAiResponseText(null);
+        }
+
         setTimeout(() => setInput(""), 1500);
       }
     } catch (e) {
@@ -360,7 +362,7 @@ export default function Home() {
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
         <nav className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-50 shadow-sm transition-colors duration-300">
           <div className="flex items-center space-x-10">
-            <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-red-600">Architect</span></span>
+            <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-red-600">Architect</span> OS</span>
             <div className="relative">
               <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center text-gray-600 dark:text-slate-400 hover:text-blue-600 font-bold uppercase text-[11px] tracking-widest">
                 Menu <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
@@ -379,38 +381,11 @@ export default function Home() {
               <>
                 <button onClick={resetSession} className="bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zresetuj Sesję</button>
                 <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="bg-gray-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 w-48 dark:text-white" />
-                <button onClick={saveProject} className="bg-gray-900 dark:bg-white dark:text-slate-900 hover:bg-black text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition">Zapisz Projekt</button>
               </>
             )}
             <button onClick={() => signOut()} className="bg-transparent border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition ml-4">Wyloguj</button>
           </div>
         </nav>
-
-        {currentView === "list" && (
-          <div className="flex-1 overflow-y-auto p-12">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex justify-between items-end mb-12">
-                <div><h2 className="text-4xl font-black dark:text-white tracking-tighter">Archiwum Projektów</h2></div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {projects.map(p => (
-                  <div key={p.id} className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-gray-100 dark:border-slate-800 overflow-hidden flex flex-col group hover:-translate-y-2 transition-all duration-500">
-                    <div className="h-48 bg-gray-100 dark:bg-slate-800 flex items-center justify-center border-b border-gray-100 dark:border-slate-800 overflow-hidden relative">
-                       <iframe className="w-[200%] h-[200%] absolute origin-top-left scale-50 pointer-events-none" srcDoc={p.previewHtml} />
-                    </div>
-                    <div className="p-8">
-                      <h3 className="text-xl font-black dark:text-white mb-1 uppercase tracking-tight">{p.name}</h3>
-                      <p className="text-[10px] font-bold text-blue-600 uppercase mb-6 tracking-widest">{p.date}</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => deleteProject(p.id)} className="col-span-2 text-[10px] font-bold text-red-500 uppercase py-3 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 rounded-xl transition">Usuń z archiwum</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
         {currentView === "wizard" && (
           <>
@@ -418,8 +393,8 @@ export default function Home() {
               <div className="flex space-x-4 w-full max-w-5xl">
                 {[
                   { step: 1, name: "Struktura", desc: "Strategia & Copy" },
-                  { step: 2, name: "Optimization", desc: "SEO & AI" },
-                  { step: 3, name: "Visual", desc: "UI/UX & Design" },
+                  { step: 2, name: "Visual", desc: "UI/UX & Design" },
+                  { step: 3, name: "Optimization", desc: "SEO & AI" },
                   { step: 4, name: "Deployment", desc: "Joomla & Handoff" }
                 ].map((s) => (
                   <div key={s.step} onClick={() => setActiveStep(s.step as any)} className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer ${activeStep === s.step ? "border-blue-600 bg-blue-50 dark:bg-blue-900/10" : "border-gray-50 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700"}`}>
@@ -444,9 +419,9 @@ export default function Home() {
                 <div className="flex-1 p-6 overflow-y-auto flex flex-col">
                   {!aiResponseText && (
                     <div className="space-y-2 mb-6 text-[11px] font-bold uppercase tracking-tight text-gray-500">
-                      {activeStep === 1 && ["Wygeneruj bazową strategię", "Pamiętaj o podaniu konkretów"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                      {activeStep === 2 && ["Możesz dopytać asystenta", "gdzie i w jakich plikach wdrożyć SEO."].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                      {activeStep === 3 && ["Wgraj zdjęcia poniżej.", "Podaj asystentowi nazwę pliku,", "aby osadził zdjęcie w kodzie."].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
+                      {activeStep === 1 && ["Ustal strukturę strony", "Dopracowuj ją w tym oknie", "aż będziesz zadowolony."].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
+                      {activeStep === 2 && ["Wgraj zdjęcia poniżej.", "Zbuduj wizualny layout.", "Zmieniaj kolory, marginesy."].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
+                      {activeStep === 3 && ["Analiza gotowej strony pod SEO", "Dodawanie JSON-LD i tagów ALT", "Asystent oceni wpływ zmian na design"].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
                     </div>
                   )}
                   
@@ -458,53 +433,55 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="px-6 pb-2">
-                    <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4">
-                        <div className="flex justify-between items-center mb-3">
-                           <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Zasoby / Obrazy WebP</span>
-                           <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold text-blue-600 uppercase bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg hover:bg-blue-100 transition">+ Dodaj</button>
-                           <input type="file" multiple accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
-                        </div>
-                        {images.length === 0 ? (
-                           <p className="text-xs text-gray-400 italic">Brak załączników. Asystent użyje placeholderów.</p>
-                        ) : (
-                           <div className="flex flex-wrap gap-4">
-                               {images.map(img => (
-                                   <div key={img.name} className="flex flex-col items-center w-[60px]">
-                                       <div className="group relative w-14 h-14 rounded-xl bg-gray-200 border border-gray-300 dark:border-slate-600 overflow-hidden cursor-help shadow-sm" title={`Wpisz: użyj zdjęcia ${img.name}`}>
-                                           <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
-                                           <button onClick={() => removeImage(img.name)} className="absolute inset-0 bg-red-600/90 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center">X</button>
-                                       </div>
-                                       <span className="text-[8px] font-bold text-gray-600 dark:text-gray-300 mt-1.5 w-full text-center truncate bg-gray-200 dark:bg-slate-700 px-1 py-0.5 rounded shadow-sm" title={img.name}>
-                                         {img.name}
-                                       </span>
-                                   </div>
-                               ))}
-                           </div>
-                        )}
-                    </div>
-                </div>
+                {/* MODUŁ ZDJĘĆ TYLKO W ETAPIE 2 I 3 */}
+                {(activeStep === 2 || activeStep === 3) && (
+                  <div className="px-6 pb-2">
+                      <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4">
+                          <div className="flex justify-between items-center mb-3">
+                             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Zasoby / Obrazy WebP</span>
+                             <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold text-blue-600 uppercase bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg hover:bg-blue-100 transition">+ Dodaj</button>
+                             <input type="file" multiple accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
+                          </div>
+                          {images.length === 0 ? (
+                             <p className="text-xs text-gray-400 italic">Brak załączników.</p>
+                          ) : (
+                             <div className="flex flex-wrap gap-4">
+                                 {images.map(img => (
+                                     <div key={img.name} className="flex flex-col items-center w-[60px]">
+                                         <div className="group relative w-14 h-14 rounded-xl bg-gray-200 border border-gray-300 dark:border-slate-600 overflow-hidden shadow-sm">
+                                             <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
+                                             <button onClick={() => removeImage(img.name)} className="absolute inset-0 bg-red-600/90 text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition flex items-center justify-center">X</button>
+                                         </div>
+                                         <span className="text-[8px] font-bold text-gray-600 dark:text-gray-300 mt-1.5 w-full text-center truncate bg-gray-200 dark:bg-slate-700 px-1 py-0.5 rounded shadow-sm" title={img.name}>{img.name}</span>
+                                     </div>
+                                 ))}
+                             </div>
+                          )}
+                      </div>
+                  </div>
+                )}
 
                 <div className="p-6 pt-2 border-t border-gray-100 dark:border-slate-800">
                   <div className="flex gap-2 mb-4">
-                    <button onClick={applyAutopilot} className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition text-[10px] uppercase tracking-widest shadow-sm">1. Generator (Autopilot)</button>
+                    <button onClick={applyAutopilot} className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition text-[10px] uppercase tracking-widest shadow-sm">Autopilot</button>
                   </div>
                   <textarea 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white shadow-inner" 
                     rows={3} 
-                    placeholder="Wydaj własne polecenie asystentowi..."
+                    placeholder="Rozmawiaj z asystentem lub wydaj polecenie optymalizacji..."
                   ></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30'}`}>
-                    {isLoading ? "Przetwarzanie..." : "2. Wyślij"}
+                    {isLoading ? "Przetwarzanie..." : "Wyślij"}
                   </button>
                 </div>
               </div>
               
               <div className="flex-1 bg-gray-100 dark:bg-slate-950 p-8 overflow-y-auto relative flex flex-col items-center">
                 
-                {activeStep === 3 && htmlContent && (
+                {/* PRZYCISKI KOD/PODGLĄD SĄ TERAZ W ETAPIE 2 ORAZ 3 */}
+                {(activeStep === 2 || activeStep === 3) && htmlContent && (
                   <div className="bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm flex space-x-2 mb-6 sticky top-0 z-10 w-full max-w-5xl justify-between">
                     <div className="flex space-x-1">
                       {["desktop", "tablet", "mobile"].map((m) => (
@@ -524,7 +501,7 @@ export default function Home() {
                   {activeStep === 1 && (
                     Object.keys(documents).length === 0 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Brak danych. Kliknij Autopilota.</p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Brak danych. Kliknij Autopilota, a następnie modyfikuj stukturę z asystentem.</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -543,25 +520,11 @@ export default function Home() {
                     )
                   )}
 
-                  {activeStep === 2 && (
-                    !documents.doc11 ? (
-                      <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Wygeneruj mapę SEO.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
-                          <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">Topical Map & JSON-LD</h3>
-                          <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents.doc11}</div>
-                        </div>
-                      </div>
-                    )
-                  )}
-
-                  {activeStep === 3 && (
+                  {/* ETAP 2 i ETAP 3 (VISUAL I SEO) - WSPÓLNY PODGLĄD HTML */}
+                  {(activeStep === 2 || activeStep === 3) && (
                     !htmlContent ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Wygeneruj HTML lub poproś asystenta o kod.</p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Brak kodu wizualnego. Poproś asystenta o wygenerowanie HTML.</p>
                       </div>
                     ) : (
                       <div className="space-y-8">
@@ -597,13 +560,16 @@ export default function Home() {
                         
                         <div className="bg-gradient-to-r from-gray-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-3xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between border border-gray-800 dark:border-slate-700">
                            <div className="mb-6 md:mb-0">
-                             <h4 className="text-white font-black text-xl uppercase tracking-tight">Gotowy do wdrożenia?</h4>
-                             <p className="text-gray-400 text-sm mt-1">Pobierz kod. Zdjęcia zostaną osadzone wewnątrz jako kody Base64.</p>
+                             <h4 className="text-white font-black text-xl uppercase tracking-tight">Gotowy do zapisania?</h4>
+                             <p className="text-gray-400 text-sm mt-1">Pobierz plik. Możesz wyeksportować projekt zarówno w Etapie 2 (surowy kod), jak i 3 (z SEO).</p>
                            </div>
-                           <button onClick={downloadHtmlPackage} className="bg-green-500 hover:bg-green-400 text-gray-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:shadow-[0_0_40px_rgba(34,197,94,0.5)] transition-all flex items-center shrink-0">
-                             <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                             Eksportuj Paczkę
-                           </button>
+                           <div className="flex gap-4">
+                             <button onClick={saveProject} className="bg-gray-100 hover:bg-white text-gray-900 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-sm">Do Archiwum</button>
+                             <button onClick={downloadHtmlPackage} className="bg-green-500 hover:bg-green-400 text-gray-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:shadow-[0_0_40px_rgba(34,197,94,0.5)] transition-all flex items-center">
+                               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                               Eksportuj Plik
+                             </button>
+                           </div>
                         </div>
                       </div>
                     )
