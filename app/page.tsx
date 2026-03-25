@@ -78,6 +78,12 @@ export default function Home() {
     alert("Projekt zapisany w Archiwum!");
   };
 
+  const deleteProject = (id: string) => {
+    const updated = projects.filter(p => p.id !== id);
+    setProjects(updated);
+    localStorage.setItem("profeProjects", JSON.stringify(updated));
+  };
+  
   const applyAutopilot = () => {
     let basePrompt = "";
     if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie.`;
