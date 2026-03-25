@@ -234,7 +234,6 @@ export default function Home() {
           }
         }
 
-        // WYCIĄGANIE KODU HTML W ETAPIE 2 ORAZ 3
         let html = extractDoc("HTML");
         if (!html) {
           const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
@@ -250,14 +249,12 @@ export default function Home() {
           setHtmlContent(cleanHtml);
           localStorage.setItem("profeActiveHtml", cleanHtml);
           
-          // Usuwamy kod HTML z odpowiedzi AI, aby w okienku zostawić sam czysty tekst porad/odpowiedzi
           aiText = aiText.replace(new RegExp(`<HTML>[\\s\\S]*?<\\/HTML>`, 'i'), "")
                          .replace(/```html[\s\S]*?```/i, "")
                          .replace(/(<!DOCTYPE html>[\s\S]*<\/html>)/i, "")
                          .trim();
         }
 
-        // Zawsze ustawiamy odpowiedź AI, jeśli zostało w niej jakieś słowo (po wycięciu tagów HTML i XML)
         const cleanAiText = aiText.replace(/<DOC_[0-9]+>[\s\S]*?<\/DOC_[0-9]+>/gi, "").trim();
         if (cleanAiText) {
            setAiResponseText(cleanAiText);
@@ -351,7 +348,7 @@ export default function Home() {
             </button>
           </div>
           <button onClick={toggleTheme} className="fixed bottom-8 right-8 p-4 bg-white dark:bg-slate-800 rounded-full shadow-xl border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-white">{darkMode ? "☀️" : "🌙"}</button>
-          <button onClick={() => signOut()} className="fixed bottom-8 left-8 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-full shadow-xl border border-red-100 dark:border-red-800 font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition">Wyloguj</button>
+          <button onClick={() => signOut()} className="fixed bottom-8 left-8 p-4 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full shadow-xl border border-slate-300 dark:border-slate-700 font-bold text-xs uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-700 transition">Wyloguj</button>
         </div>
       </div>
     );
@@ -364,23 +361,23 @@ export default function Home() {
           <div className="flex items-center space-x-10">
             <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-red-600">Architect</span> OS</span>
             <div className="relative">
-              <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center text-gray-600 dark:text-slate-400 hover:text-blue-600 font-bold uppercase text-[11px] tracking-widest">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center text-gray-600 dark:text-slate-400 hover:text-red-600 font-bold uppercase text-[11px] tracking-widest">
                 Menu <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
               </button>
               {menuOpen && (
                 <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden py-2 border border-gray-100 dark:border-slate-700 z-[100]">
-                  <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-blue-600">Warsztat Roboczy</button>
+                  <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-red-600">Warsztat Roboczy</button>
                   <button onClick={() => { setCurrentView("list"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-gray-700 dark:text-white">Archiwum</button>
                 </div>
               )}
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <button onClick={toggleTheme} className="p-2 text-gray-500 hover:text-blue-600 transition-colors">{darkMode ? "☀️" : "🌙"}</button>
+            <button onClick={toggleTheme} className="p-2 text-gray-500 hover:text-red-600 transition-colors">{darkMode ? "☀️" : "🌙"}</button>
             {currentView === "wizard" && (
               <>
-                <button onClick={resetSession} className="bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zresetuj Sesję</button>
-                <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="bg-gray-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 w-48 dark:text-white" />
+                <button onClick={resetSession} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zresetuj Sesję</button>
+                <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="bg-gray-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-red-500 w-48 dark:text-white" />
               </>
             )}
             <button onClick={() => signOut()} className="bg-transparent border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition ml-4">Wyloguj</button>
@@ -397,14 +394,14 @@ export default function Home() {
                   { step: 3, name: "Optimization", desc: "SEO & AI" },
                   { step: 4, name: "Deployment", desc: "Joomla & Handoff" }
                 ].map((s) => (
-                  <div key={s.step} onClick={() => setActiveStep(s.step as any)} className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer ${activeStep === s.step ? "border-blue-600 bg-blue-50 dark:bg-blue-900/10" : "border-gray-50 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700"}`}>
-                    <div className={`text-[10px] font-black uppercase tracking-widest ${activeStep === s.step ? "text-blue-600" : "text-gray-400"}`}>Etap 0{s.step}</div>
+                  <div key={s.step} onClick={() => setActiveStep(s.step as any)} className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer ${activeStep === s.step ? "border-red-600 bg-red-50 dark:bg-red-900/10" : "border-gray-50 dark:border-slate-800 hover:border-gray-200 dark:hover:border-slate-700"}`}>
+                    <div className={`text-[10px] font-black uppercase tracking-widest ${activeStep === s.step ? "text-red-600" : "text-gray-400"}`}>Etap 0{s.step}</div>
                     <div className={`font-black mt-1 uppercase ${activeStep === s.step ? "text-slate-900 dark:text-white" : "text-gray-500"}`}>{s.name}</div>
                   </div>
                 ))}
               </div>
               <div className="ml-8 flex space-x-4">
-                <button onClick={() => setActiveStep((activeStep + 1) as any)} disabled={activeStep === 4} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl disabled:opacity-20">Dalej</button>
+                <button onClick={() => setActiveStep((activeStep + 1) as any)} disabled={activeStep === 4} className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl disabled:opacity-20">Dalej</button>
               </div>
             </div>
 
@@ -421,25 +418,24 @@ export default function Home() {
                     <div className="space-y-2 mb-6 text-[11px] font-bold uppercase tracking-tight text-gray-500">
                       {activeStep === 1 && ["Ustal strukturę strony", "Dopracowuj ją w tym oknie", "aż będziesz zadowolony."].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
                       {activeStep === 2 && ["Wgraj zdjęcia poniżej.", "Zbuduj wizualny layout.", "Zmieniaj kolory, marginesy."].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                      {activeStep === 3 && ["Analiza gotowej strony pod SEO", "Dodawanie JSON-LD i tagów ALT", "Asystent oceni wpływ zmian na design"].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
+                      {activeStep === 3 && ["Analiza gotowej strony pod SEO", "Dodawanie JSON-LD i tagów ALT", "Asystent oceni wpływ zmian na design"].map(d => <div key={d} className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 rounded-xl border border-red-100 dark:border-red-800/50">{d}</div>)}
                     </div>
                   )}
                   
                   {aiResponseText && (
-                    <div className="bg-blue-50 dark:bg-slate-800 border-l-4 border-blue-500 p-5 rounded-r-2xl mb-4 shadow-sm">
-                       <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-2 uppercase tracking-widest">Odpowiedź asystenta:</p>
+                    <div className="bg-red-50 dark:bg-slate-800 border-l-4 border-red-500 p-5 rounded-r-2xl mb-4 shadow-sm">
+                       <p className="text-xs font-semibold text-red-900 dark:text-red-200 mb-2 uppercase tracking-widest">Odpowiedź asystenta:</p>
                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100 whitespace-pre-wrap leading-relaxed">{aiResponseText}</p>
                     </div>
                   )}
                 </div>
 
-                {/* MODUŁ ZDJĘĆ TYLKO W ETAPIE 2 I 3 */}
                 {(activeStep === 2 || activeStep === 3) && (
                   <div className="px-6 pb-2">
                       <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4">
                           <div className="flex justify-between items-center mb-3">
                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Zasoby / Obrazy WebP</span>
-                             <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold text-blue-600 uppercase bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-lg hover:bg-blue-100 transition">+ Dodaj</button>
+                             <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold text-red-600 uppercase bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-lg hover:bg-red-100 transition">+ Dodaj</button>
                              <input type="file" multiple accept="image/*" ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
                           </div>
                           {images.length === 0 ? (
@@ -468,11 +464,11 @@ export default function Home() {
                   <textarea 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:text-white shadow-inner" 
+                    className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white shadow-inner" 
                     rows={3} 
                     placeholder="Rozmawiaj z asystentem lub wydaj polecenie optymalizacji..."
                   ></textarea>
-                  <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30'}`}>
+                  <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30'}`}>
                     {isLoading ? "Przetwarzanie..." : "Wyślij"}
                   </button>
                 </div>
@@ -480,19 +476,18 @@ export default function Home() {
               
               <div className="flex-1 bg-gray-100 dark:bg-slate-950 p-8 overflow-y-auto relative flex flex-col items-center">
                 
-                {/* PRZYCISKI KOD/PODGLĄD SĄ TERAZ W ETAPIE 2 ORAZ 3 */}
                 {(activeStep === 2 || activeStep === 3) && htmlContent && (
                   <div className="bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm flex space-x-2 mb-6 sticky top-0 z-10 w-full max-w-5xl justify-between">
                     <div className="flex space-x-1">
                       {["desktop", "tablet", "mobile"].map((m) => (
-                        <button key={m} onClick={() => setViewMode(m as any)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${viewMode === m && !showCode ? "bg-gray-100 dark:bg-slate-900 text-blue-600 dark:text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
+                        <button key={m} onClick={() => setViewMode(m as any)} className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${viewMode === m && !showCode ? "bg-gray-100 dark:bg-slate-900 text-red-600 dark:text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>
                           {m}
                         </button>
                       ))}
                     </div>
                     <div className="flex space-x-1 bg-gray-100 dark:bg-slate-900 rounded-xl p-1">
-                       <button onClick={() => setShowCode(false)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!showCode ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>Podgląd Wizualny</button>
-                       <button onClick={() => setShowCode(true)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${showCode ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>Kod HTML</button>
+                       <button onClick={() => setShowCode(false)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!showCode ? "bg-white dark:bg-slate-700 text-red-600 dark:text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>Podgląd Wizualny</button>
+                       <button onClick={() => setShowCode(true)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${showCode ? "bg-white dark:bg-slate-700 text-red-600 dark:text-white shadow-sm" : "text-gray-400 hover:text-gray-600"}`}>Kod HTML</button>
                     </div>
                   </div>
                 )}
@@ -507,7 +502,7 @@ export default function Home() {
                       <div className="space-y-6">
                         {["doc1", "doc9", "doc10", "doc12"].map(key => documents[key] && (
                           <div key={key} className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
-                            <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+                            <h3 className="text-xl font-black uppercase text-red-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">
                               {key === "doc1" && "Architektura i Strategia Konwersji"}
                               {key === "doc9" && "Handoff Copywriterski"}
                               {key === "doc10" && "Wsad Tekstowy"}
@@ -520,7 +515,6 @@ export default function Home() {
                     )
                   )}
 
-                  {/* ETAP 2 i ETAP 3 (VISUAL I SEO) - WSPÓLNY PODGLĄD HTML */}
                   {(activeStep === 2 || activeStep === 3) && (
                     !htmlContent ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
@@ -585,7 +579,7 @@ export default function Home() {
                         <>
                           {["doc2", "doc3", "doc7", "doc13"].map(key => documents[key] && (
                             <div key={key} className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
-                              <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+                              <h3 className="text-xl font-black uppercase text-red-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">
                                 {key === "doc2" && "Architektura SP Page Builder"}
                                 {key === "doc3" && "Tabela wdrożeniowa"}
                                 {key === "doc7" && "Master Handoff"}
