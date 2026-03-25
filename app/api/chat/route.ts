@@ -32,7 +32,7 @@ export async function POST(req: Request) {
             if (searchData && searchData.results) {
                 const contextStr = searchData.results.map((r: any) => `Źródło: ${r.url}\nTreść: ${r.content}`).join('\n\n');
                 searchContext = step === 2 
-                    ? `\n\n--- INSPIRACJA Z URL ---\nUżytkownik podał linki. Zignoruj domyślny, nudny wygląd. Skopiuj ich innowacyjny układ i luksusowy klimat opisany tutaj:\n${contextStr}\n-----------------------------------\n`
+                    ? `\n\n--- INSPIRACJA Z URL ---\nUżytkownik podał linki. Zignoruj domyślny, nudny wygląd. Zainspiruj się innowacyjnym układem i luksusowym klimatem opisanym tutaj:\n${contextStr}\n-----------------------------------\n`
                     : `\n\n--- TWARDE DANE Z INTERNETU ---\nOprzyj dokumenty na tych informacjach:\n${contextStr}\n-----------------------------------\n`;
             }
         } catch (e) {
@@ -49,24 +49,21 @@ export async function POST(req: Request) {
       
       ZABRANIAM CI używać przestarzałych układów (nudne paski nawigacji, płaskie sekcje pod rząd, brak paddingów, małe fonty). Strona musi krzyczeć "Premium 2026".
       
-      BEZWZGLĘDNE REGUŁY DESIGNU (Użyj tych klas Tailwind):
-      1. BENTO GRID & KARTY: Nie używaj zwykłych list. Sekcje ofert/o nas pakuj w asymetryczne siatki (np. grid-cols-1 md:grid-cols-3 gap-6). Elementy to "karty" - używaj klas: 'bg-white rounded-[2rem] p-8 shadow-xl shadow-blue-900/5 ring-1 ring-gray-100/50'.
+      BEZWZGLĘDNE REGUŁY DESIGNU:
+      1. BENTO GRID & KARTY: Sekcje ofert/o nas pakuj w asymetryczne siatki (np. grid-cols-1 md:grid-cols-3 gap-6). Elementy to "karty" - używaj klas: 'bg-white rounded-[2rem] p-8 shadow-xl shadow-blue-900/5 ring-1 ring-gray-100/50'.
       2. MICRO-INTERAKCJE (HOVER): Każda karta i przycisk musi żyć. Używaj: 'transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl group cursor-pointer'.
-      3. GLASSMORPHISM: Nawigacja (Header) lub unoszące się karty muszą mieć efekt szkła: 'sticky top-0 z-50 backdrop-blur-xl bg-white/70 border-b border-white/20'.
-      4. TYPOGRAFIA (HIERARCHIA): 
-         - Etykiety nad nagłówkami (Overlines): 'text-[10px] font-black uppercase tracking-widest text-blue-600 mb-4 block'.
-         - Główne nagłówki (H1/H2): 'text-5xl md:text-6xl font-black tracking-tighter text-slate-900 leading-tight mb-6'. Stosuj łamanie linii.
-         - Paragrafy (p): 'text-base md:text-lg font-medium text-slate-500 leading-relaxed'.
-      5. POTĘŻNE CTA (PRZYCISKI): Przyciski muszą być duże i wyraziste. Używaj: 'inline-flex items-center px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-600 hover:scale-105 transition-all shadow-lg'.
-      6. ZDJĘCIA (ASSETY): Zastępuj placeholdery konkretnymi nazwami z sekcji "DOSTĘPNE ZDJĘCIA". Zdjęcia pakuj w luksusowe ramy: 'w-full h-full object-cover rounded-[2.5rem] shadow-2xl'.
-      7. IKONY LUCIDE: Wzbogacaj layout ikonami. Używaj tagu <i data-lucide="arrow-right" class="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform"></i>.
-      8. PRZESTRZEŃ (WHITESPACE): Stosuj GIGANTYCZNE odstępy między sekcjami, np. 'py-24 md:py-32'.
+      3. GLASSMORPHISM: Nawigacja lub unoszące się karty muszą mieć efekt szkła: 'sticky top-0 z-50 backdrop-blur-xl bg-white/70 border-b border-white/20'.
+      4. TYPOGRAFIA (HIERARCHIA): Etykiety nad nagłówkami: 'text-[10px] font-black uppercase tracking-widest text-blue-600 mb-4 block'. Główne nagłówki (H1/H2): 'text-5xl md:text-6xl font-black tracking-tighter text-slate-900 leading-tight mb-6'. Paragrafy: 'text-base md:text-lg font-medium text-slate-500 leading-relaxed'.
+      5. POTĘŻNE CTA: 'inline-flex items-center px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-600 hover:scale-105 transition-all shadow-lg'.
+      6. ZDJĘCIA (ASSETY): Zastępuj placeholdery konkretnymi nazwami z sekcji "DOSTĘPNE ZDJĘCIA" ('w-full h-full object-cover rounded-[2.5rem] shadow-2xl').
+      7. IKONY LUCIDE: Wzbogacaj layout ikonami (np. <i data-lucide="arrow-right" class="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform"></i>).
+      8. PRZESTRZEŃ: Stosuj GIGANTYCZNE odstępy między sekcjami, np. 'py-24 md:py-32'.
 
-      DZIEDZICZENIE (PODSTRONY): Jeśli w kontekście widzisz "BAZA DESIGNU (STRONA GŁÓWNA)", sklonuj jej <header>, <nav> i <footer> DOKŁADNIE 1:1, a nowoczesny środek (main) wpasuj w ten sam styl kolorystyczny.
+      DZIEDZICZENIE (PODSTRONY): Jeśli w kontekście widzisz "BAZA DESIGNU", powiel jej <header>, <nav> i <footer> DOKŁADNIE 1:1, a nowy środek wpasuj w ten sam styl.
 
-      WIZUALNA INSPIRACJA (VISION): Jeśli użytkownik wgrał pliki graficzne w prompcie lub podał link do strony, to Twoje GŁÓWNE zadanie: Odtwórz ten układ wizualny w kodzie Tailwind!
+      WIZUALNA INSPIRACJA (VISION): Jeśli użytkownik wgrał pliki graficzne w prompcie lub podał link do strony, potraktuj je jako WZORZEC (wireframe/mockup). Zainspiruj się ich strukturą, ułożeniem elementów i zastosuj je we własnym, unikalnym kodzie Tailwind. NIE KOPIUJ ich własności intelektualnej 1:1, stwórz własną luksusową interpretację na bazie naszych tekstów.
 
-      Odpowiadasz zwracając TYLKO I WYŁĄCZNIE kod objęty w tagi <HTML>...</HTML>. Zero dodatkowego gadania.`;
+      Odpowiadasz zwracając TYLKO I WYŁĄCZNIE kod objęty w tagi <HTML>...</HTML>.`;
     }
     else if (step === 3) {
       systemContent = `Jesteś WYBITNYM INŻYNIEREM SEO. Wdróż JSON-LD, zoptymalizuj H1/H2 i tagi ALT na bazie HTML podanego przez użytkownika. Zwróć nowy <HTML>...</HTML>. 
@@ -99,8 +96,8 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o', 
-        temperature: 0.7, // Podnosimy z 0.4 na 0.7, aby dać mu trochę więcej artystycznej swobody do wymyślania asymetrycznych układów
-        max_tokens: 8192, // Ustawiamy gigantyczny limit, żeby nie ucinał skomplikowanego, nowoczesnego kodu
+        temperature: 0.7, 
+        max_tokens: 8192, 
         messages: [
           { role: 'system', content: systemContent },
           ...messagesToSend
