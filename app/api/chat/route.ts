@@ -5,17 +5,26 @@ export async function POST(req: Request) {
     const { messages, step } = await req.json();
     let systemContent = "";
 
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
+    const lastUserMessage = messages[messages.length - 1];
+    // Obsługa dwóch typów wiadomości (zwykły string lub tablica Vision z obrazem)
+    const userText = typeof lastUserMessage?.content === 'string' 
+        ? lastUserMessage.content 
+        : lastUserMessage?.content?.find((c: any) => c.type === 'text')?.text || "";
+
     let searchContext = "";
 
-    if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10 && !lastUserMessage.includes("--- WIEDZA")) {
+    // TAVILY - Skaner URL uruchamia się teraz także w ETAPIE 2, jeśli wykryje link
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const hasUrls = userText.match(urlRegex);
+
+    if ((step === 1 || (step === 2 && hasUrls)) && process.env.TAVILY_API_KEY && userText.length > 10 && !userText.includes("--- WIEDZA")) {
         try {
             const searchRes = await fetch('https://api.tavily.com/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     api_key: process.env.TAVILY_API_KEY,
-                    query: lastUserMessage,
+                    query: step === 2 ? `Zanalizuj układ i styl tych stron internetowych: ${hasUrls.join(", ")}` : userText,
                     search_depth: "advanced",
                     include_answer: true,
                     max_results: 5
@@ -24,7 +33,9 @@ export async function POST(req: Request) {
             const searchData = await searchRes.json();
             if (searchData && searchData.results) {
                 const contextStr = searchData.results.map((r: any) => `Źródło: ${r.url}\nTreść: ${r.content}`).join('\n\n');
-                searchContext = `\n\n--- TWARDE DANE Z INTERNETU ---\nOprzyj dokumenty na tych informacjach:\n${contextStr}\n-----------------------------------\n`;
+                searchContext = step === 2 
+                    ? `\n\n--- INSPIRACJA Z URL ---\nUżytkownik podał linki. Skopiuj i zainspiruj się układem oraz klimatem opisanym tutaj:\n${contextStr}\n-----------------------------------\n`
+                    : `\n\n--- TWARDE DANE Z INTERNETU ---\nOprzyj dokumenty na tych informacjach:\n${contextStr}\n-----------------------------------\n`;
             }
         } catch (e) {
             console.error("Tavily Error:", e);
@@ -32,42 +43,31 @@ export async function POST(req: Request) {
     }
 
     if (step === 1) {
-      systemContent = `Jesteś WYBITNYM STRATEGIEM I ARCHITEKTEM INFORMACJI.
-      Zwróć uwagę na kontekst: użytkownik może tworzyć STRONĘ GŁÓWNĄ lub PODSTRONĘ (np. "O nas", "Cennik").
-      Projektuj w logice sprzedażowej (hero, problem, rozwiązanie, dowody, CTA).
-      Jeśli użytkownik ZADAJE PYTANIE, odpowiedz zwykłym tekstem.
-      Jeśli generujesz dokumenty, użyj: <DOC_1>, <DOC_9>, <DOC_10>, <DOC_12>.`;
+      systemContent = `Jesteś WYBITNYM STRATEGIEM. Zwróć format XML: <DOC_1>, <DOC_9>, <DOC_10>, <DOC_12>.`;
     } 
     else if (step === 2) {
       systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM.
-      Jeśli użytkownik ZADAJE PYTANIE, odpowiedz tekstem.
-      
       ZWRÓĆ PEŁNY KOD W TAGACH <HTML>...</HTML>.
+      
       KRYTYCZNE ZASADY KODOWANIA:
-      1. DZIEDZICZENIE STYLÓW (DESIGN SYSTEM): 
-         - Jeśli kodujesz PODSTRONĘ, w kontekście otrzymasz kod Strony Głównej. 
-         - TWOIM BEZWZGLĘDNYM OBOWIĄZKIEM jest utrzymanie 100% spójności wizualnej z Głęwną.
-         - Skopiuj <head> ze stylami CSS, <header>, <nav> i <footer> DOKŁADNIE tak, jak wyglądają.
-         - W nowym contencie podstrony sklonuj estetykę: użyj tych samych kolorów tła, identycznych klas dla przycisków (np. te same gradienty, paddingi, zaokrąglenia), tych samych cieni (shadow) i fontów. Strona musi stanowić jednorodną całość z resztą serwisu.
-      2. MENU: Zaktualizuj atrybuty 'href' w <nav> oraz stopce na bazie Mapy Stron z kontekstu.
-      3. DESIGN: Używaj Tailwind v4. Pamiętaj o zachowaniu asymetrii i nowoczesnego układu (Bento grid dla ofert).
-      4. ZDJĘCIA: Zastępuj placeholdery nazwami plików z załączników WebP.`;
+      1. WIZUALNA INSPIRACJA (VISION/URL): Jeśli użytkownik załączył obrazek referencyjny (zrzut ekranu innej strony lub projekt) lub podał link URL, TWOIM GŁÓWNYM CELEM JEST WIERNE ODTWORZENIE TEGO LAYOUTU. Skopiuj układ kolumn, styl nawigacji, stopki i proporcje przestrzeni, pisząc kod w Tailwind CSS v4.
+      2. DZIEDZICZENIE: Jeśli kodujesz podstronę, skopiuj nawigację i stopkę ze Strony Głównej podanej w kontekście.
+      3. ZDJĘCIA NA STRONĘ: Osadzaj prawdziwe nazwy plików, jeśli są podane w kontekście jako 'DOSTĘPNE ZDJĘCIA'.`;
     }
     else if (step === 3) {
-      systemContent = `Jesteś WYBITNYM INŻYNIEREM SEO I OPTYMALIZACJI.
-      Otrzymasz gotowy kod HTML. Nasyć go optymalizacją pod AI i SEO.
-      1. Zawsze zacznij od naturalnego tekstu (poza tagami), opisując optymalizacje.
-      2. ZWRÓĆ ZAKTUALIZOWANY KOD W TAGACH <HTML>...</HTML>.
-      3. Wdróż JSON-LD, optymalizuj nagłówki (H1, H2) i dodaj atrybuty alt. Nie zmieniaj wizualnych klas Tailwind!`;
+      systemContent = `Jesteś WYBITNYM INŻYNIEREM SEO. Wdróż JSON-LD, zoptymalizuj H1/H2 i tagi ALT na bazie HTML podanego przez użytkownika. Zwróć nowy <HTML>...</HTML>. Opisz co zmieniłeś w naturalnej odpowiedzi w dymku.`;
     } 
     else if (step === 4) {
-      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Zmapuj HTML pod CMS. 
-      Użyj tagów: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
+      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Użyj tagów: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
     }
 
     const messagesToSend = [...messages];
     if (searchContext) {
-        messagesToSend[messagesToSend.length - 1].content = lastUserMessage + searchContext;
+        if (typeof messagesToSend[messagesToSend.length - 1].content === 'string') {
+            messagesToSend[messagesToSend.length - 1].content += searchContext;
+        } else {
+            messagesToSend[messagesToSend.length - 1].content[0].text += searchContext;
+        }
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o', 
-        temperature: 0.3, // Zmniejszyłem lekko temperaturę, aby ściślej trzymał się wzorców CSS
+        temperature: 0.4, 
         max_tokens: 4096, 
         messages: [
           { role: 'system', content: systemContent },
