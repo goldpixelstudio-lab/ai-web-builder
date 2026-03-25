@@ -8,8 +8,7 @@ export async function POST(req: Request) {
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     let searchContext = "";
 
-    // AUTONOMICZNE WYSZUKIWANIE (TAVILY)
-    if (process.env.TAVILY_API_KEY && lastUserMessage.length > 10) {
+    if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10) {
         try {
             const searchRes = await fetch('https://api.tavily.com/search', {
                 method: 'POST',
@@ -17,62 +16,59 @@ export async function POST(req: Request) {
                 body: JSON.stringify({
                     api_key: process.env.TAVILY_API_KEY,
                     query: lastUserMessage,
-                    search_depth: "advanced", // Zmiana na deep search
+                    search_depth: "advanced",
                     include_answer: true,
                     max_results: 5
                 })
             });
             const searchData = await searchRes.json();
-            
             if (searchData && searchData.results) {
                 const contextStr = searchData.results.map((r: any) => `Źródło: ${r.url}\nTreść: ${r.content}`).join('\n\n');
-                searchContext = `\n\n--- TWARDE DANE Z INTERNETU (AKTUALNY KONTEKST) ---\nUżyj poniższych informacji pobranych z sieci, aby Twoja odpowiedź opierała się na prawdziwych danych (adresy, metody np. Teddy Eddie, Savvy Ed, certyfikaty):\n${contextStr}\n----------------------------------------------------\n`;
+                searchContext = `\n\n--- TWARDE DANE Z INTERNETU ---\nUżyj TYCH konkretnych informacji o ofercie (np. Teddy Eddie, Savvy Ed) w swoich dokumentach:\n${contextStr}\n-----------------------------------\n`;
             }
         } catch (e) {
-            console.error("⚠️ Błąd silnika Tavily:", e);
+            console.error("Tavily Error:", e);
         }
     }
 
     if (step === 1) {
-      systemContent = `Jesteś WYBITNYM ARCHITEKTEM INFORMACJI. Twoim zadaniem jest dogłębna analiza dostarczonych danych z internetu i stworzenie potężnej architektury.
-      
-      Generujesz 4 rygorystyczne dokumenty w tagach XML:
-      <DOC_1> Strategia i architektura (semantyczne landmarki, logika, minimum 6 sekcji). </DOC_1>
-      <DOC_9> Handoff dla copywritera (wartość merytoryczna, używaj konkretnych nazw np. Teddy Eddie, Savvy Ed). </DOC_9>
-      <DOC_10> Wersja redakcyjna (Premium) - język dopasowany do grupy docelowej. </DOC_10>
+      systemContent = `Jesteś WYBITNYM ARCHITEKTEM INFORMACJI. Generujesz 4 dokumenty XML:
+      <DOC_1> Strategia i architektura (wymagane 6 wielkich sekcji: topbar, nav, hero, oferta bento-grid, opinie, footer). </DOC_1>
+      <DOC_9> Handoff dla copywritera (wartość merytoryczna, konkretne nazwy kursów i metod). </DOC_9>
+      <DOC_10> Wersja redakcyjna (Premium) - twarde, konkretne teksty do wstawienia na stronę. Zero lania wody. </DOC_10>
       <DOC_12> Asset plan. </DOC_12>
       Zawsze otaczaj odpowiedź tagami XML. Brak jakiegokolwiek wstępu.`;
     } 
     else if (step === 2) {
-      systemContent = `Jesteś ELITARNYM EKSPERTEM SEO. 
-      Wygeneruj 1 rygorystyczny dokument:
-      <DOC_11> Dokument 11 — SEO / AI Search Visibility. 
-      Musisz uwzględnić precyzyjny JSON-LD dla szkoły językowej z danymi z poprzedniego kroku.
-      </DOC_11>
-      Zawsze otaczaj odpowiedź tagiem <DOC_11>. Brak wstępu.`;
+      systemContent = `Jesteś INŻYNIEREM TECHNICZNEGO SEO. 
+      MASZ KATEGORYCZNY ZAKAZ PISANIA ESEJÓW, WSTĘPÓW I PODSUMOWAŃ.
+      
+      Zwróć JEDYNIE tag <DOC_11>, wewnątrz którego znajdą się:
+      1. Kompletny, gotowy do wdrożenia kod JSON-LD (Organization oraz LocalBusiness) dla szkoły językowej, zawierający PRAWDZIWE DANE ze strategii (np. adres w Radomsku).
+      2. Twarda architektura nagłówków (H1, H2, H3) oparta na realnych słowach kluczowych (np. "angielski dla dzieci radomsko teddy eddie").
+      3. Meta Title i Meta Description.
+      
+      ZABRONIONE jest generowanie sekcji takich jak "Wprowadzenie" czy "Rekomendacje SEO". Zwracasz tylko czysty konkret do wdrożenia.`;
     }
     else if (step === 3) {
-      systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM.
-      Znajdujemy się w Etapie 3. Wygeneruj KOMPLETNY plik HTML + Tailwind CSS v4.
+      systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM. Twoje zadanie to zakodowanie strony głównej w HTML + Tailwind CSS v4.
       
-      BEZWZGLĘDNE ZASADY INŻYNIERYJNE (JEŚLI ICH NIE SPEŁNISZ, PROJEKT UPADNIE):
-      1. ZAKAZ PLACEHOLDERÓW: Kod ma być masywny (min. 200-300 linijek). Nie możesz zignorować żadnej sekcji.
-      2. OBOWIĄZKOWE SEKCJE:
-         - Topbar (dane kontaktowe, Radomsko).
-         - Header z zaawansowanym Mega Menu.
-         - Potężna sekcja Hero z CTA.
-         - Sekcja Oferty (Bento Grid dla dzieci, młodzieży, dorosłych).
-         - Sekcja Dlaczego My / Opinie.
-         - Kompleksowy Footer z linkami.
-      3. TREŚĆ: Używaj prawdziwych tekstów z Etapów 1 i 2 (Teddy Eddie, Savvy Ed, przygotowania do egzaminów). ZABRONIONE jest używanie fraz "Lorum Ipsum" czy "Innowacyjne strategie".
-      4. DESIGN PREMIUM: Używaj glassmorphismu, gradientów, zaokrągleń (rounded-2xl) i asymetrii.
-      5. TECHNIKALIA: CDN Tailwind v4, Lucide Icons, semantyka (nav, main, section).
-
-      ZWRÓĆ TYLKO I WYŁĄCZNIE KOD HTML W ZNACZNIKACH <HTML> cały kod od <!DOCTYPE html> do </html> </HTML>.`;
+      KRYTYCZNE, BEZWZGLĘDNE ZASADY:
+      1. ZAKAZ PLACEHOLDERÓW: Kategorycznie zabraniam używania fraz takich jak "Innowacyjne Rozwiązania", "Wsparcie Techniczne" czy "Lorem Ipsum". MUSISZ wstawić do kodu prawdziwe teksty o szkole w Radomsku, metodach Teddy Eddie i Savvy Ed pobrane z DOC_10.
+      2. WYMAGANA ARCHITEKTURA (Jeśli pominiesz jedną, projekt zostanie odrzucony):
+         - <header> z Topbarem kontaktowym (telefon, adres) i szerokim paskiem nawigacji.
+         - <section class="hero"> z asymetrycznym układem, potężnym H1 i mocnym CTA.
+         - <section class="oferta"> zbudowana w nowoczesnym BENTO GRID (osobne kafle dla Dzieci, Młodzieży, Dorosłych).
+         - <section class="opinie-dlaczego-my"> z liczbami i konkretnymi dowodami.
+         - <section class="faq"> na dole strony.
+         - <footer> z pełną mapą linków.
+      3. DESIGN PREMIUM: Zastosuj zaawansowane klasy Tailwind: backdrop-blur-xl, radial-gradients, text-[clamp(...)], zaokrąglenia (rounded-3xl).
+      
+      ZWRÓĆ TYLKO I WYŁĄCZNIE CZYSTY KOD W ZNACZNIKACH <HTML> cały twój kod </HTML>. JSON-LD ma znaleźć się wewnątrz <head>.`;
     } 
     else if (step === 4) {
       systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER.
-      Wygeneruj uniwersalną dokumentację wdrożeniową w tagach:
+      Wygeneruj dokumentację wdrożeniową na bazie wygenerowanego kodu HTML:
       <DOC_2> Architektura SP Page Builder. </DOC_2>
       <DOC_3> Tabela wdrożeniowa. </DOC_3>
       <DOC_7> Master Handoff. </DOC_7>
@@ -92,8 +88,8 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o', 
-        temperature: 0.7, 
-        max_tokens: 4096, // ZMUSZAMY MODEL DO GENEROWANIA DŁUGIEGO KODU
+        temperature: 0.2, // OBNIŻONA TEMPERATURA = MNIEJ FANTAZJOWANIA, WIĘCEJ TRZYMANIA SIĘ FAKTÓW
+        max_tokens: 4096, 
         messages: [
           { role: 'system', content: systemContent },
           ...messagesToSend

@@ -68,13 +68,26 @@ export default function Home() {
     let promptToSend = input.trim();
 
     if (!promptToSend) {
-      if (activeStep === 1) promptToSend = `Zbuduj potężną strategię i architekturę informacji dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie i koniecznie uwzględnij w dokumentach ich autentyczną ofertę (Teddy Eddie, Savvy Ed, egzaminy, dorośli).`;
-      else if (activeStep === 2) promptToSend = `Opracuj rygorystyczną optymalizację SEO i zalecenia dla AI (Dokument 11), wykorzystując dane z poprzedniego etapu. Zbuduj poprawny JSON-LD.`;
-      else if (activeStep === 3) promptToSend = `Bazując na strategii i SEO, wygeneruj PEŁNY, niesamowicie rozbudowany kod wizualny HTML+Tailwind (minimum 6 wielkich sekcji: topbar, mega-menu, hero, oferta, opinie, footer). ZABRONIONE są krótkie placeholdery. Użyj prawdziwych tekstów z Etapu 1 (Teddy Eddie itp.).`;
+      if (activeStep === 1) promptToSend = `Zbuduj potężną strategię i architekturę informacji dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie i koniecznie uwzględnij autentyczną ofertę (Teddy Eddie, Savvy Ed, egzaminy).`;
+      else if (activeStep === 2) promptToSend = `Opracuj rygorystyczną optymalizację SEO i zalecenia dla AI (Dokument 11). Użyj informacji o Profe Studio z poprzedniego etapu.`;
+      else if (activeStep === 3) promptToSend = `Wygeneruj PEŁNY kod wizualny HTML+Tailwind. ZABRONIONE są krótkie placeholdery. Użyj prawdziwych tekstów ze strategii z DOC_10 (Teddy Eddie itp.). Strona musi mieć minimum 6 sekcji i luksusowy design (glassmorphism).`;
       else if (activeStep === 4) promptToSend = `Zmapuj wygenerowany projekt na architekturę Joomla oraz SP Page Builder (Dokumenty 2, 3, 7, 13).`;
       
       setInput(promptToSend);
     }
+
+    // MEGA POPRAWKA: Przekazanie zgromadzonej wiedzy do AI!
+    let projectContext = "";
+    if (activeStep > 1 && Object.keys(documents).length > 0) {
+      projectContext = "\n\n--- WIEDZA Z POPRZEDNICH ETAPÓW (MUSISZ Z TEGO SKORZYSTAĆ) ---\n";
+      if (documents.doc1) projectContext += `<DOC_1>\n${documents.doc1}\n</DOC_1>\n`;
+      if (documents.doc9) projectContext += `<DOC_9>\n${documents.doc9}\n</DOC_9>\n`;
+      if (documents.doc10) projectContext += `<DOC_10>\n${documents.doc10}\n</DOC_10>\n`;
+      if (documents.doc11) projectContext += `<DOC_11>\n${documents.doc11}\n</DOC_11>\n`;
+      projectContext += "-----------------------------------------------------------------\n";
+    }
+
+    const finalMessage = promptToSend + projectContext;
 
     setIsLoading(true);
 
@@ -83,7 +96,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          messages: [{ role: "user", content: promptToSend }],
+          messages: [{ role: "user", content: finalMessage }],
           step: activeStep 
         }),
       });
@@ -92,6 +105,7 @@ export default function Home() {
       if (data.reply) {
         let aiText = data.reply;
         
+        // PANCERNY PARSER
         const extractDoc = (tag: string) => {
           const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
           const match = aiText.match(regex);
@@ -100,16 +114,30 @@ export default function Home() {
 
         if (activeStep === 1) {
           const newDocs: Record<string, string> = { ...documents };
-          const doc1 = extractDoc("DOC_1"); if (doc1) newDocs["doc1"] = doc1;
-          const doc9 = extractDoc("DOC_9"); if (doc9) newDocs["doc9"] = doc9;
-          const doc10 = extractDoc("DOC_10"); if (doc10) newDocs["doc10"] = doc10;
-          const doc12 = extractDoc("DOC_12"); if (doc12) newDocs["doc12"] = doc12;
+          
+          let d1 = extractDoc("DOC_1");
+          let d9 = extractDoc("DOC_9");
+          let d10 = extractDoc("DOC_10");
+          let d12 = extractDoc("DOC_12");
+          
+          // Fallback awaryjny - jeśli AI zgubiło tagi
+          if (!d1 && !d10) {
+             d1 = aiText; 
+             d10 = "AWARYJNY KONTEKST: " + aiText; 
+          }
+
+          if (d1) newDocs["doc1"] = d1;
+          if (d9) newDocs["doc9"] = d9;
+          if (d10) newDocs["doc10"] = d10;
+          if (d12) newDocs["doc12"] = d12;
+          
           setDocuments(newDocs);
         }
 
-        // PARSER - ETAP 2: SEO
         if (activeStep === 2) {
-          const doc11 = extractDoc("DOC_11");
+          let doc11 = extractDoc("DOC_11");
+          if (!doc11) doc11 = aiText; // Jeśli AI nie użyło tagu, pobieramy czysty tekst
+          
           if (doc11) {
             const newDocs: Record<string, string> = { ...documents };
             newDocs["doc11"] = doc11;
@@ -117,16 +145,20 @@ export default function Home() {
           }
         }
 
-        // PARSER - ETAP 3: HTML WIZUALNY
         if (activeStep === 3) {
           let html = extractDoc("HTML");
+          // Jeśli AI użyło formatowania markdown zamiast tagów
           if (!html) {
             const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
             if (mdMatch) html = mdMatch[1];
           }
+          // Ostateczny fallback - próbujemy wyciągnąć kod od <!DOCTYPE do </html>
           if (!html) {
-             html = aiText;
+             const docMatch = aiText.match(/(<!DOCTYPE html>[\s\S]*<\/html>)/i);
+             if (docMatch) html = docMatch[1];
+             else html = aiText;
           }
+
           if (html) {
             let cleanHtml = html.replace(/```html/gi, "").replace(/```/g, "").trim();
             setHtmlContent(cleanHtml);
@@ -169,7 +201,7 @@ export default function Home() {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }</style>
 </head>
-<body class="bg-white text-slate-900">
+<body class="bg-slate-950 text-white">
     ${htmlContent}
     <script>lucide.createIcons();</script>
 </body>
@@ -213,7 +245,6 @@ export default function Home() {
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
-        
         <nav className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-50 shadow-sm transition-colors duration-300">
           <div className="flex items-center space-x-10">
             <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-blue-600">Architect</span></span>
@@ -327,7 +358,6 @@ export default function Home() {
                 )}
 
                 <div className="w-full max-w-5xl">
-                  {/* ETAP 1 */}
                   {activeStep === 1 && (
                     Object.keys(documents).length === 0 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
@@ -350,7 +380,6 @@ export default function Home() {
                     )
                   )}
 
-                  {/* ETAP 2: SEO */}
                   {activeStep === 2 && (
                     !documents.doc11 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
@@ -369,7 +398,6 @@ export default function Home() {
                     )
                   )}
 
-                  {/* ETAP 3: WIZUALIZACJA */}
                   {activeStep === 3 && (
                     !htmlContent ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
@@ -381,10 +409,10 @@ export default function Home() {
                     ) : (
                       <div className="space-y-8">
                         <div className="flex justify-center w-full">
-                          <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-white shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-200 dark:border-slate-700 relative">
+                          <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-slate-950 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-800 relative">
                             <iframe className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" srcDoc={`
                               <!DOCTYPE html>
-                              <html lang="pl" class="antialiased">
+                              <html lang="pl" class="antialiased dark">
                                 <head>
                                   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
                                   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
@@ -392,7 +420,7 @@ export default function Home() {
                                   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
                                   <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }</style>
                                 </head>
-                                <body class="bg-white text-slate-900">
+                                <body class="bg-slate-950 text-white">
                                   ${htmlContent}
                                   <script>lucide.createIcons();</script>
                                 </body>
@@ -401,7 +429,6 @@ export default function Home() {
                           </div>
                         </div>
                         
-                        {/* PRZENIESIONY PANEL EKSPORTU PACZKI */}
                         <div className="bg-gradient-to-r from-gray-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-3xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between border border-gray-800 dark:border-slate-700">
                            <div className="mb-6 md:mb-0">
                              <h4 className="text-white font-black text-xl uppercase tracking-tight">Gotowy do wdrożenia?</h4>
@@ -416,7 +443,6 @@ export default function Home() {
                     )
                   )}
                   
-                  {/* ETAP 4: DEPLOYMENT */}
                   {activeStep === 4 && (
                     <div className="space-y-6">
                       {Object.keys(documents).filter(k => ["doc2", "doc3", "doc7", "doc13"].includes(k)).length === 0 ? (
