@@ -16,7 +16,7 @@ interface PageData {
   documents: Record<string, string>;
   htmlContent: string | null;
   images: UploadedImage[];
-  refImages: UploadedImage[]; // Obrazy jako inspiracja (Vision)
+  refImages: UploadedImage[];
 }
 
 interface Project {
@@ -35,7 +35,7 @@ export default function Home() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activePageId, setActivePageId] = useState<string | null>(null);
   
-  const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -124,7 +124,6 @@ export default function Home() {
     setCurrentView("wizard");
   };
 
-  // --- ZAPISZ JAKO (WERSJONOWANIE PROJEKTU) ---
   const saveProjectAs = () => {
     const activeProject = projects.find(p => p.id === activeProjectId);
     if (!activeProject) return;
@@ -203,7 +202,6 @@ export default function Home() {
     }
   };
 
-  // Obsługa grafiki w 2 wariantach (Assety vs Referencje)
   const processImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isReference: boolean) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -258,7 +256,9 @@ export default function Home() {
     if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla: ${activePage.name}.`;
     else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny kod HTML dla: ${activePage.name}. Jeśli załączyłem zdjęcia w sekcji INSPIRACJE lub linki URL - zbuduj design w oparciu o nie. Zachowaj 100% spójności ze Stroną Główną. Wstaw Assety (zdjęcia do osadzenia). Zwróć tylko HTML.`;
     else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Optymalizuj obecny kod HTML podstrony ${activePage.name} (JSON-LD, tagi ALT). Odpowiedz w dymku co zmieniłeś i zwróć HTML.`;
-    else if (activeStep === 4) basePrompt = `Zmapuj ten kod na architekturę Joomla / SP Page Builder.`;
+    else if (activeStep === 4) basePrompt = `Zmapuj projekt pod Joomla / SP Page Builder.`;
+    else if (activeStep === 5) basePrompt = `Zmapuj projekt pod WordPress i Elementor.`;
+    else if (activeStep === 6) basePrompt = `Przygotuj pełną dokumentację techniczną i instrukcję obsługi.`;
     setInput(basePrompt);
   };
 
@@ -285,7 +285,6 @@ export default function Home() {
         projectContext += `\n--- DOSTĘPNE ZDJĘCIA (ASSETY DO OSADZENIA) ---\nWgrane pliki: ${images.map(img => img.name).join(", ")}. Użyj ich np. src="${images[0].name}".\n`;
     }
 
-    // BUDOWA ŁADUNKU VISION (Jeśli są grafiki referencyjne)
     let payloadMessage: any = input + projectContext;
 
     if (refImages.length > 0 && activeStep === 2) {
@@ -313,13 +312,29 @@ export default function Home() {
           return match ? match[1].trim() : null;
         };
 
-        if (activeStep === 1 || activeStep === 4) {
+        if (activeStep === 1 || activeStep === 4 || activeStep === 5 || activeStep === 6) {
           let d1 = extractDoc("DOC_1"); let d9 = extractDoc("DOC_9"); let d10 = extractDoc("DOC_10"); let d12 = extractDoc("DOC_12");
           let doc2 = extractDoc("DOC_2"); let doc3 = extractDoc("DOC_3"); let doc7 = extractDoc("DOC_7"); let doc13 = extractDoc("DOC_13");
-          if (d1 || d10 || doc2 || doc3) {
-            const newDocs = { ...documents };
-            if (d1) newDocs["doc1"] = d1; if (d9) newDocs["doc9"] = d9; if (d10) newDocs["doc10"] = d10; if (d12) newDocs["doc12"] = d12;
-            if (doc2) newDocs["doc2"] = doc2; if (doc3) newDocs["doc3"] = doc3; if (doc7) newDocs["doc7"] = doc7; if (doc13) newDocs["doc13"] = doc13;
+          let doc14 = extractDoc("DOC_14"); let doc15 = extractDoc("DOC_15"); 
+          let doc16 = extractDoc("DOC_16"); let doc17 = extractDoc("DOC_17");
+          
+          const newDocs = { ...documents };
+          let changed = false;
+          
+          if (d1) { newDocs["doc1"] = d1; changed = true; }
+          if (d9) { newDocs["doc9"] = d9; changed = true; }
+          if (d10) { newDocs["doc10"] = d10; changed = true; }
+          if (d12) { newDocs["doc12"] = d12; changed = true; }
+          if (doc2) { newDocs["doc2"] = doc2; changed = true; }
+          if (doc3) { newDocs["doc3"] = doc3; changed = true; }
+          if (doc7) { newDocs["doc7"] = doc7; changed = true; }
+          if (doc13) { newDocs["doc13"] = doc13; changed = true; }
+          if (doc14) { newDocs["doc14"] = doc14; changed = true; }
+          if (doc15) { newDocs["doc15"] = doc15; changed = true; }
+          if (doc16) { newDocs["doc16"] = doc16; changed = true; }
+          if (doc17) { newDocs["doc17"] = doc17; changed = true; }
+
+          if (changed) {
             setDocuments(newDocs);
             isDocGenerated = true;
           }
@@ -370,6 +385,7 @@ export default function Home() {
       </div>
   )
 
+  // --- EKRAN STARTOWY ---
   if (currentView === "landing") {
     return (
       <div className={`${darkMode ? "dark" : ""}`}>
@@ -379,13 +395,12 @@ export default function Home() {
           </div>
           <div className="flex flex-col sm:flex-row gap-8 items-center justify-center w-full max-w-5xl px-6">
             <button onClick={createNewProject} className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center transition-all duration-500">
+              <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
               <span className="text-4xl font-black uppercase tracking-tight">Nowy Projekt</span>
             </button>
-            <button onClick={() => {
-                if(projects.length > 0) { setActiveProjectId(projects[0].id); setActivePageId(projects[0].pages[0].id); loadPageToWorkspace(projects[0].id, projects[0].pages[0].id); setCurrentView("wizard"); } 
-                else { alert("Brak projektów. Stwórz nowy."); }
-            }} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center transition-all duration-500">
-              <span className="text-4xl font-black uppercase tracking-tight">Otwórz Warsztat</span>
+            <button onClick={() => setCurrentView("list")} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center transition-all duration-500">
+              <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+              <span className="text-4xl font-black uppercase tracking-tight">Archiwum</span>
             </button>
           </div>
         </div>
@@ -393,6 +408,7 @@ export default function Home() {
     );
   }
 
+  // --- ARCHIWUM ---
   if (currentView === "list") {
     return (
       <div className={`${darkMode ? "dark" : ""}`}>
@@ -439,6 +455,7 @@ export default function Home() {
             )}
           </div>
           <div className="flex items-center space-x-4">
+            <button onClick={() => { saveCurrentWorkToProject(); setCurrentView("list"); }} className="bg-transparent border border-gray-300 dark:border-slate-700 text-gray-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase transition">Archiwum</button>
             <button onClick={saveProjectAs} className="bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">💾 Zapisz jako...</button>
             <button onClick={saveCurrentWorkToProject} className="bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zapisz Stan</button>
             <button onClick={downloadFullProject} className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition shadow-lg">Wydaj Projekt</button>
@@ -448,12 +465,12 @@ export default function Home() {
 
         {activePage && (
           <>
-            <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-8 py-6 flex justify-between items-center shrink-0">
-              <div className="flex space-x-4 w-full max-w-5xl">
-                {[ { step: 1, name: "Struktura" }, { step: 2, name: "Visual" }, { step: 3, name: "SEO & AI" }, { step: 4, name: "Joomla" } ].map((s) => (
-                  <div key={s.step} onClick={() => setActiveStep(s.step as any)} className={`flex-1 p-4 rounded-2xl border-2 transition-all cursor-pointer ${activeStep === s.step ? "border-red-600 bg-red-50 dark:bg-red-900/10" : "border-gray-50 dark:border-slate-800"}`}>
-                    <div className={`text-[10px] font-black uppercase tracking-widest ${activeStep === s.step ? "text-red-600" : "text-gray-400"}`}>Etap 0{s.step}</div>
-                    <div className="font-black mt-1 uppercase">{s.name}</div>
+            <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-8 py-4 flex justify-between items-center shrink-0">
+              <div className="flex space-x-2 w-full max-w-6xl">
+                {[ { step: 1, name: "Struktura" }, { step: 2, name: "Visual" }, { step: 3, name: "SEO & AI" }, { step: 4, name: "Joomla" }, { step: 5, name: "WordPress" }, { step: 6, name: "Docs" } ].map((s) => (
+                  <div key={s.step} onClick={() => setActiveStep(s.step as any)} className={`flex-1 p-3 rounded-xl border-2 transition-all cursor-pointer ${activeStep === s.step ? "border-red-600 bg-red-50 dark:bg-red-900/10" : "border-gray-50 dark:border-slate-800"}`}>
+                    <div className={`text-[9px] font-black uppercase tracking-widest ${activeStep === s.step ? "text-red-600" : "text-gray-400"}`}>Etap {s.step}</div>
+                    <div className="font-black mt-0.5 text-xs uppercase">{s.name}</div>
                   </div>
                 ))}
               </div>
@@ -473,10 +490,8 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* MENEDŻER ZASOBÓW I WIZJI W ETAPIE 2 */}
                   {activeStep === 2 && (
                     <div className="space-y-4 mt-auto">
-                        {/* 1. ASSETY (DO OSADZENIA) */}
                         <div className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4">
                             <div className="flex justify-between items-center mb-3">
                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Zdjęcia na stronę (Assety)</span>
@@ -489,7 +504,6 @@ export default function Home() {
                                ))}
                             </div>
                         </div>
-                        {/* 2. VISION (DO INSPIRACJI) */}
                         <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30 rounded-2xl p-4">
                             <div className="flex justify-between items-center mb-3">
                                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Grafika Inspiracyjna (Vision)</span>
@@ -501,7 +515,6 @@ export default function Home() {
                                    <div key={img.name} className="relative w-10 h-10 rounded bg-gray-200 group"><img src={img.dataUrl} className="w-full h-full object-cover rounded" /><button onClick={() => setRefImages(refImages.filter(i=>i.name!==img.name))} className="absolute inset-0 bg-red-600/90 text-white text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center">X</button></div>
                                ))}
                             </div>
-                            <p className="text-[9px] mt-2 text-indigo-400">AI przestudiuje te grafiki i sklonuje układ.</p>
                         </div>
                     </div>
                   )}
@@ -524,14 +537,13 @@ export default function Home() {
                       ))}
                     </div>
                     <div className="flex space-x-1 bg-gray-100 dark:bg-slate-900 rounded-xl p-1">
-                       <button onClick={() => setShowCode(false)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!showCode ? "bg-white text-red-600" : "text-gray-400"}`}>Podgląd Wizualny</button>
+                       <button onClick={() => setShowCode(false)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${!showCode ? "bg-white text-red-600" : "text-gray-400"}`}>Podgląd</button>
                        <button onClick={() => setShowCode(true)} className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${showCode ? "bg-white text-red-600" : "text-gray-400"}`}>Kod HTML</button>
                     </div>
                   </div>
                 )}
                 
                 <div className="w-full max-w-5xl">
-                   {/* Renderowanie treści w zależności od etapu i stanu */}
                    {(activeStep === 2 || activeStep === 3) && htmlContent ? (
                        showCode ? (
                            <div className="w-full bg-slate-900 rounded-[2rem] p-6 shadow-2xl border border-slate-700"><textarea readOnly className="w-full h-[700px] bg-transparent text-emerald-400 font-mono text-xs outline-none" value={htmlContent} /></div>
@@ -540,9 +552,35 @@ export default function Home() {
                                <iframe className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" srcDoc={`<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://unpkg.com/@tailwindcss/browser@4"></script><script src="https://unpkg.com/lucide@latest"></script><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet"></head><body>${getRenderedHtml(htmlContent, images)}<script>lucide.createIcons();</script></body></html>`} />
                            </div>
                        )
+                   ) : activeStep === 1 || activeStep === 4 || activeStep === 5 || activeStep === 6 ? (
+                       <div className="space-y-6">
+                           {activeStep === 1 && Object.keys(documents).filter(k => ["doc1", "doc9", "doc10", "doc12"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych. Wpisz polecenie.</div>}
+                           {activeStep === 4 && Object.keys(documents).filter(k => ["doc2", "doc3", "doc7", "doc13"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych dla Joomla. Wpisz polecenie.</div>}
+                           {activeStep === 5 && Object.keys(documents).filter(k => ["doc14", "doc15"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych dla WordPress. Wpisz polecenie.</div>}
+                           {activeStep === 6 && Object.keys(documents).filter(k => ["doc16", "doc17"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak dokumentacji końcowej. Wpisz polecenie.</div>}
+                           
+                           {["doc1", "doc9", "doc10", "doc12", "doc2", "doc3", "doc7", "doc13", "doc14", "doc15", "doc16", "doc17"].map(key => {
+                               if (!documents[key]) return null;
+                               const stepMap: Record<string, number> = { doc1:1, doc9:1, doc10:1, doc12:1, doc2:4, doc3:4, doc7:4, doc13:4, doc14:5, doc15:5, doc16:6, doc17:6 };
+                               if (stepMap[key] !== activeStep) return null;
+                               
+                               const titles: Record<string, string> = {
+                                   doc1: "Architektura", doc9: "Handoff Copywriterski", doc10: "Wsad Tekstowy", doc12: "Plan Mediów",
+                                   doc2: "Architektura SP Page Builder", doc3: "Tabela Joomla", doc7: "Master Handoff", doc13: "QA Checklist",
+                                   doc14: "Architektura Elementor", doc15: "Tabela WordPress",
+                                   doc16: "Dokumentacja Techniczna", doc17: "Instrukcja dla Klienta"
+                               };
+                               return (
+                                  <div key={key} className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
+                                      <h3 className="text-xl font-black uppercase text-red-600 mb-4 border-b border-gray-100 pb-4">{titles[key]}</h3>
+                                      <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents[key]}</div>
+                                  </div>
+                               )
+                           })}
+                       </div>
                    ) : (
                        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                          <p className="text-gray-400 uppercase tracking-widest text-center text-sm">{activeStep === 1 ? "Wygeneruj architekturę dla tej podstrony" : "Brak widoku. Wygeneruj kod."}</p>
+                          <p className="text-gray-400 uppercase tracking-widest text-center text-sm">Brak widoku. Wygeneruj kod.</p>
                        </div>
                    )}
                 </div>

@@ -6,14 +6,12 @@ export async function POST(req: Request) {
     let systemContent = "";
 
     const lastUserMessage = messages[messages.length - 1];
-    // Obsługa dwóch typów wiadomości (zwykły string lub tablica Vision z obrazem)
     const userText = typeof lastUserMessage?.content === 'string' 
         ? lastUserMessage.content 
         : lastUserMessage?.content?.find((c: any) => c.type === 'text')?.text || "";
 
     let searchContext = "";
 
-    // TAVILY - Skaner URL uruchamia się teraz także w ETAPIE 2, jeśli wykryje link
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const hasUrls = userText.match(urlRegex);
 
@@ -48,17 +46,23 @@ export async function POST(req: Request) {
     else if (step === 2) {
       systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM.
       ZWRÓĆ PEŁNY KOD W TAGACH <HTML>...</HTML>.
-      
       KRYTYCZNE ZASADY KODOWANIA:
-      1. WIZUALNA INSPIRACJA (VISION/URL): Jeśli użytkownik załączył obrazek referencyjny (zrzut ekranu innej strony lub projekt) lub podał link URL, TWOIM GŁÓWNYM CELEM JEST WIERNE ODTWORZENIE TEGO LAYOUTU. Skopiuj układ kolumn, styl nawigacji, stopki i proporcje przestrzeni, pisząc kod w Tailwind CSS v4.
+      1. WIZUALNA INSPIRACJA (VISION/URL): Jeśli podano obrazek lub URL, TWOIM GŁÓWNYM CELEM JEST WIERNE ODTWORZENIE TEGO LAYOUTU w Tailwind CSS v4.
       2. DZIEDZICZENIE: Jeśli kodujesz podstronę, skopiuj nawigację i stopkę ze Strony Głównej podanej w kontekście.
-      3. ZDJĘCIA NA STRONĘ: Osadzaj prawdziwe nazwy plików, jeśli są podane w kontekście jako 'DOSTĘPNE ZDJĘCIA'.`;
+      3. ZDJĘCIA: Osadzaj nazwy plików (np. src="foto.webp") jeśli są podane jako DOSTĘPNE ZDJĘCIA.`;
     }
     else if (step === 3) {
-      systemContent = `Jesteś WYBITNYM INŻYNIEREM SEO. Wdróż JSON-LD, zoptymalizuj H1/H2 i tagi ALT na bazie HTML podanego przez użytkownika. Zwróć nowy <HTML>...</HTML>. Opisz co zmieniłeś w naturalnej odpowiedzi w dymku.`;
+      systemContent = `Jesteś WYBITNYM INŻYNIEREM SEO. Wdróż JSON-LD, zoptymalizuj H1/H2 i tagi ALT na bazie HTML podanego przez użytkownika. Zwróć nowy <HTML>...</HTML>. 
+      BARDZO WAŻNE: W swojej naturalnej odpowiedzi (poza kodem HTML) stwórz dodatkowo poprawny kod sitemap.xml (w bloku kodu) dla Google, uwzględniając podstronę, nad którą pracujesz.`;
     } 
     else if (step === 4) {
-      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Użyj tagów: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
+      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Użyj tagów: <DOC_2> Architektura SP Page Builder, <DOC_3> Tabela wdrożeniowa, <DOC_7> Master Handoff, <DOC_13> QA Checklist.`;
+    }
+    else if (step === 5) {
+      systemContent = `Jesteś EKSPERTEM WORDPRESS i ELEMENTOR. Zmapuj HTML pod ekosystem WordPress. Użyj tagów XML: <DOC_14> Architektura Elementor, <DOC_15> Tabela wdrożeniowa WP.`;
+    }
+    else if (step === 6) {
+      systemContent = `Jesteś WYBITNYM TECHNICAL WRITEREM. Przygotuj dokumentację końcową. Użyj tagów XML: <DOC_16> Dokumentacja techniczna dla deweloperów, <DOC_17> Instrukcja obsługi dla klienta.`;
     }
 
     const messagesToSend = [...messages];
