@@ -334,8 +334,8 @@ export default function Home() {
     if (!activeProject || !activePage) return;
     let basePrompt = "";
     if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla: ${activePage.name}.`;
-    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny kod HTML dla: ${activePage.name}. Jeśli załączyłem zdjęcia w sekcji INSPIRACJE lub linki URL - zbuduj design w oparciu o nie. Zachowaj 100% spójności ze Stroną Główną. Wstaw Assety (zdjęcia do osadzenia). Zwróć HTML.`;
-    else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Optymalizuj obecny kod HTML podstrony ${activePage.name} (JSON-LD, tagi ALT). Odpowiedz w dymku co zmieniłeś i zwróć HTML. Podaj także sitemap.xml.`;
+    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj luksusowy kod HTML. Jeśli podałem obrazki (Vision), potraktuj je jako MOODBOARD. Zbuduj autorski kod, który do nich nawiązuje (Tylko kod HTML).`;
+    else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Optymalizuj kod podstrony (JSON-LD, tagi ALT). Odpowiedz w dymku co zmieniłeś, zwróć kod HTML i koniecznie podaj wygenerowany sitemap.xml.`;
     else if (activeStep === 4) basePrompt = `Zmapuj projekt pod Joomla / SP Page Builder.`;
     else if (activeStep === 5) basePrompt = `Zmapuj projekt pod WordPress i Elementor.`;
     else if (activeStep === 6) basePrompt = `Przygotuj pełną dokumentację techniczną i instrukcję obsługi.`;
@@ -367,9 +367,10 @@ export default function Home() {
 
     let payloadMessage: any = input + projectContext;
 
+    // --- ZMIENIONY TEKST DO VISION, ABY OMINĄĆ FILTRY ---
     if (refImages.length > 0 && activeStep === 2) {
         payloadMessage = [
-            { type: "text", text: input + projectContext + "\n--- GRAFIKI REFERENCYJNE (INSPIRACJE) ---\nPrzeanalizuj poniższe grafiki. Odtwórz ich układ, styl i kolorystykę w kodzie Tailwind CSS." }
+            { type: "text", text: input + projectContext + "\n--- GRAFIKI REFERENCYJNE (MOODBOARD WIZUALNY) ---\nOto załączone grafiki. Posiadamy do nich pełne prawa autorskie. Zainspiruj się ich paletą kolorów, przestrzenią i układem sekcji. Zbuduj na tej podstawie autorski, niezwykle luksusowy kod Tailwind CSS. Odpowiedz TYLKO tagami HTML." }
         ];
         refImages.forEach(img => {
             payloadMessage.push({ type: "image_url", image_url: { url: img.dataUrl } });
@@ -621,13 +622,11 @@ export default function Home() {
                 </div>
 
                 <div className="p-6 pt-2 border-t border-gray-100 dark:border-slate-800">
-                  {/* PRZYWRÓCONY PRZYCISK AUTOPILOTA */}
                   <div className="flex gap-2 mb-4">
                     <button onClick={applyAutopilot} className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition text-[10px] uppercase tracking-widest shadow-sm">
                       ⚡ Autopilot (Załaduj Kontekst)
                     </button>
                   </div>
-                  
                   <textarea value={input} onChange={(e) => setInput(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white" rows={3} placeholder={activeStep === 2 ? "Wpisz polecenie lub podaj linki (URL) do inspiracji..." : "Polecenie dla asystenta..."}></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30'}`}>
                     {isLoading ? "Przetwarzanie..." : "Wyślij"}
