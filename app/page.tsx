@@ -62,32 +62,35 @@ export default function Home() {
     localStorage.setItem("profeProjects", JSON.stringify(updated));
   };
 
-  const sendMessage = async () => {
-    if (isLoading) return;
+  const applyAutopilot = () => {
+    let basePrompt = "";
+    if (activeStep === 1) basePrompt = `Zbuduj potężną strategię dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie i uwzględnij autentyczną ofertę (Teddy Eddie, Savvy Ed).`;
+    else if (activeStep === 2) basePrompt = `Opracuj SUROWY kod JSON-LD i listę 10 fraz kluczowych SEO. ŻADNYCH RAD I TEORII. Zwróć tylko konkrety oparte na poniższej wiedzy.`;
+    else if (activeStep === 3) basePrompt = `Wygeneruj PEŁNY kod HTML. ZABRONIONE SĄ PLACEHOLDERY typu "Usługa 1". Użyj precyzyjnie tekstów z poniższego kontekstu. Zbuduj 6 potężnych sekcji w luksusowym designie.`;
+    else if (activeStep === 4) basePrompt = `Zmapuj projekt na Joomla i SP Page Builder (Dokumenty 2, 3, 7, 13).`;
 
-    let promptToSend = input.trim();
-
-    if (!promptToSend) {
-      if (activeStep === 1) promptToSend = `Zbuduj potężną strategię i architekturę informacji dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie i koniecznie uwzględnij autentyczną ofertę (Teddy Eddie, Savvy Ed, egzaminy).`;
-      else if (activeStep === 2) promptToSend = `Opracuj rygorystyczną optymalizację SEO i zalecenia dla AI (Dokument 11). Użyj informacji o Profe Studio z poprzedniego etapu.`;
-      else if (activeStep === 3) promptToSend = `Wygeneruj PEŁNY kod wizualny HTML+Tailwind. ZABRONIONE są krótkie placeholdery. Użyj prawdziwych tekstów ze strategii z DOC_10 (Teddy Eddie itp.). Strona musi mieć minimum 6 sekcji i luksusowy design (glassmorphism).`;
-      else if (activeStep === 4) promptToSend = `Zmapuj wygenerowany projekt na architekturę Joomla oraz SP Page Builder (Dokumenty 2, 3, 7, 13).`;
-      
-      setInput(promptToSend);
-    }
-
-    // MEGA POPRAWKA: Przekazanie zgromadzonej wiedzy do AI!
     let projectContext = "";
     if (activeStep > 1 && Object.keys(documents).length > 0) {
-      projectContext = "\n\n--- WIEDZA Z POPRZEDNICH ETAPÓW (MUSISZ Z TEGO SKORZYSTAĆ) ---\n";
-      if (documents.doc1) projectContext += `<DOC_1>\n${documents.doc1}\n</DOC_1>\n`;
-      if (documents.doc9) projectContext += `<DOC_9>\n${documents.doc9}\n</DOC_9>\n`;
-      if (documents.doc10) projectContext += `<DOC_10>\n${documents.doc10}\n</DOC_10>\n`;
-      if (documents.doc11) projectContext += `<DOC_11>\n${documents.doc11}\n</DOC_11>\n`;
-      projectContext += "-----------------------------------------------------------------\n";
+      projectContext = "\n\n--- SKOPIOWANA WIEDZA O FIRMIE Z ETAPU 1 ---\n";
+      if (documents.doc1) projectContext += `STRATEGIA:\n${documents.doc1.substring(0, 800)}...\n\n`;
+      if (documents.doc10) projectContext += `TEKSTY DO UŻYCIA (BARDZO WAŻNE):\n${documents.doc10}\n\n`;
+      if (documents.doc11) projectContext += `SEO:\n${documents.doc11.substring(0, 800)}...\n`;
+      projectContext += "----------------------------------------------\n";
+    } else if (activeStep > 1) {
+      projectContext = "\n\n⚠️ UWAGA: Brak danych z Etapu 1. Najpierw wygeneruj Etap 1!";
     }
 
-    const finalMessage = promptToSend + projectContext;
+    setInput(basePrompt + projectContext);
+  };
+
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    
+    // Jeśli użytkownik zignorował brak danych w E2 i E3
+    if (activeStep > 1 && input.includes("Brak danych z Etapu 1")) {
+      alert("Najpierw musisz wygenerować Strategię w Etapie 1, aby AI miało dane do pracy!");
+      return;
+    }
 
     setIsLoading(true);
 
@@ -96,7 +99,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          messages: [{ role: "user", content: finalMessage }],
+          messages: [{ role: "user", content: input }],
           step: activeStep 
         }),
       });
@@ -105,7 +108,6 @@ export default function Home() {
       if (data.reply) {
         let aiText = data.reply;
         
-        // PANCERNY PARSER
         const extractDoc = (tag: string) => {
           const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
           const match = aiText.match(regex);
@@ -114,17 +116,12 @@ export default function Home() {
 
         if (activeStep === 1) {
           const newDocs: Record<string, string> = { ...documents };
-          
           let d1 = extractDoc("DOC_1");
           let d9 = extractDoc("DOC_9");
           let d10 = extractDoc("DOC_10");
           let d12 = extractDoc("DOC_12");
           
-          // Fallback awaryjny - jeśli AI zgubiło tagi
-          if (!d1 && !d10) {
-             d1 = aiText; 
-             d10 = "AWARYJNY KONTEKST: " + aiText; 
-          }
+          if (!d1 && !d10) { d1 = aiText; d10 = aiText; }
 
           if (d1) newDocs["doc1"] = d1;
           if (d9) newDocs["doc9"] = d9;
@@ -136,7 +133,7 @@ export default function Home() {
 
         if (activeStep === 2) {
           let doc11 = extractDoc("DOC_11");
-          if (!doc11) doc11 = aiText; // Jeśli AI nie użyło tagu, pobieramy czysty tekst
+          if (!doc11) doc11 = aiText; 
           
           if (doc11) {
             const newDocs: Record<string, string> = { ...documents };
@@ -147,12 +144,10 @@ export default function Home() {
 
         if (activeStep === 3) {
           let html = extractDoc("HTML");
-          // Jeśli AI użyło formatowania markdown zamiast tagów
           if (!html) {
             const mdMatch = aiText.match(/```html([\s\S]*?)```/i);
             if (mdMatch) html = mdMatch[1];
           }
-          // Ostateczny fallback - próbujemy wyciągnąć kod od <!DOCTYPE do </html>
           if (!html) {
              const docMatch = aiText.match(/(<!DOCTYPE html>[\s\S]*<\/html>)/i);
              if (docMatch) html = docMatch[1];
@@ -199,9 +194,9 @@ export default function Home() {
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }</style>
+    <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; scroll-behavior: smooth; }</style>
 </head>
-<body class="bg-slate-950 text-white">
+<body class="bg-slate-950 text-slate-100">
     ${htmlContent}
     <script>lucide.createIcons();</script>
 </body>
@@ -333,15 +328,16 @@ export default function Home() {
                   {activeStep === 4 && ["Dokument 2: SPPB Layout", "Dokument 3: Excel Matrix", "Dokument 7: Master Handoff", "Dokument 13: QA Checklist"].map(d => <div key={d} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 rounded-xl border border-blue-100 dark:border-blue-800/50">{d}</div>)}
                 </div>
                 <div className="p-6 border-t border-gray-100 dark:border-slate-800">
+                  <button onClick={applyAutopilot} className="w-full mb-4 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition uppercase tracking-widest text-[10px]">1. Załaduj Kontekst (Autopilot)</button>
                   <textarea 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-4 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" 
-                    rows={4} 
-                    placeholder="Wprowadź wytyczne dla Eksperta lub zostaw puste, aby odpalić autopilota..."
+                    rows={8} 
+                    placeholder="Kliknij przycisk powyżej, aby załadować polecenie i wiedzę..."
                   ></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20'}`}>
-                    {isLoading ? "Przetwarzanie..." : "Generuj Operacyjnie"}
+                    {isLoading ? "Przetwarzanie..." : "2. Generuj Operacyjnie"}
                   </button>
                 </div>
               </div>
@@ -385,7 +381,7 @@ export default function Home() {
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
                         <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
                           Oczekiwanie na analizę SEO... <br/>
-                          <span className="text-sm opacity-70 mt-2 block">Kliknij przycisk z pustym polem, by rozpocząć.</span>
+                          <span className="text-sm opacity-70 mt-2 block">Załaduj kontekst (1) i generuj (2).</span>
                         </p>
                       </div>
                     ) : (
@@ -403,7 +399,7 @@ export default function Home() {
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
                         <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
                           Oczekiwanie na render wizualny... <br/>
-                          <span className="text-sm opacity-70 mt-2 block">Zostaw pole puste i kliknij przycisk, aby wygenerować design.</span>
+                          <span className="text-sm opacity-70 mt-2 block">Załaduj kontekst (1) i generuj (2).</span>
                         </p>
                       </div>
                     ) : (
@@ -418,9 +414,9 @@ export default function Home() {
                                   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
                                   <script src="https://unpkg.com/lucide@latest"></script>
                                   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
-                                  <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; }</style>
+                                  <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; scroll-behavior: smooth; }</style>
                                 </head>
-                                <body class="bg-slate-950 text-white">
+                                <body class="bg-slate-950 text-slate-100">
                                   ${htmlContent}
                                   <script>lucide.createIcons();</script>
                                 </body>
@@ -449,7 +445,7 @@ export default function Home() {
                         <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
                           <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">
                             Oczekiwanie na dokumentację wdrożeniową... <br/>
-                            <span className="text-sm opacity-70 mt-2 block">Zostaw pole puste i kliknij, by odpalić autopilota i zmapować na Joomla / SP Page Builder.</span>
+                            <span className="text-sm opacity-70 mt-2 block">Załaduj kontekst (1) i generuj (2).</span>
                           </p>
                         </div>
                       ) : (

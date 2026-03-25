@@ -8,7 +8,8 @@ export async function POST(req: Request) {
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     let searchContext = "";
 
-    if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10) {
+    // Wyszukiwanie tylko w Etapie 1
+    if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10 && !lastUserMessage.includes("--- SKOPIOWANA WIEDZA")) {
         try {
             const searchRes = await fetch('https://api.tavily.com/search', {
                 method: 'POST',
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
             const searchData = await searchRes.json();
             if (searchData && searchData.results) {
                 const contextStr = searchData.results.map((r: any) => `Źródło: ${r.url}\nTreść: ${r.content}`).join('\n\n');
-                searchContext = `\n\n--- TWARDE DANE Z INTERNETU ---\nUżyj TYCH konkretnych informacji o ofercie (np. Teddy Eddie, Savvy Ed) w swoich dokumentach:\n${contextStr}\n-----------------------------------\n`;
+                searchContext = `\n\n--- TWARDE DANE Z INTERNETU ---\nUżyj TYCH informacji (prawdziwe adresy, metody m.in. Teddy Eddie, Savvy Ed):\n${contextStr}\n-----------------------------------\n`;
             }
         } catch (e) {
             console.error("Tavily Error:", e);
@@ -34,41 +35,35 @@ export async function POST(req: Request) {
     if (step === 1) {
       systemContent = `Jesteś WYBITNYM ARCHITEKTEM INFORMACJI. Generujesz 4 dokumenty XML:
       <DOC_1> Strategia i architektura (wymagane 6 wielkich sekcji: topbar, nav, hero, oferta bento-grid, opinie, footer). </DOC_1>
-      <DOC_9> Handoff dla copywritera (wartość merytoryczna, konkretne nazwy kursów i metod). </DOC_9>
-      <DOC_10> Wersja redakcyjna (Premium) - twarde, konkretne teksty do wstawienia na stronę. Zero lania wody. </DOC_10>
+      <DOC_9> Handoff dla copywritera (wartość merytoryczna, konkretne nazwy kursów). </DOC_9>
+      <DOC_10> Wersja redakcyjna - twarde, konkretne teksty do wstawienia na stronę (np. Teddy Eddie, Savvy Ed). </DOC_10>
       <DOC_12> Asset plan. </DOC_12>
       Zawsze otaczaj odpowiedź tagami XML. Brak jakiegokolwiek wstępu.`;
     } 
     else if (step === 2) {
-      systemContent = `Jesteś INŻYNIEREM TECHNICZNEGO SEO. 
-      MASZ KATEGORYCZNY ZAKAZ PISANIA ESEJÓW, WSTĘPÓW I PODSUMOWAŃ.
+      systemContent = `Jesteś GENERATOREM KODU SEO. 
+      ZAKAZ PISANIA RAD, WSTĘPÓW, TEORII I ZDAŃ ZŁOŻONYCH. NIE UŻYWAJ SŁÓW TYPU "Wprowadzenie", "Podsumowanie".
       
-      Zwróć JEDYNIE tag <DOC_11>, wewnątrz którego znajdą się:
-      1. Kompletny, gotowy do wdrożenia kod JSON-LD (Organization oraz LocalBusiness) dla szkoły językowej, zawierający PRAWDZIWE DANE ze strategii (np. adres w Radomsku).
-      2. Twarda architektura nagłówków (H1, H2, H3) oparta na realnych słowach kluczowych (np. "angielski dla dzieci radomsko teddy eddie").
+      Zwróć JEDYNIE tag <DOC_11>, a w nim:
+      1. Surowy, gotowy kod <script type="application/ld+json"> dla LocalBusiness i LanguageSchool, zawierający prawdziwe dane klienta.
+      2. Listę 10 precyzyjnych fraz kluczowych (np. "szkoła językowa radomsko", "angielski dla dzieci teddy eddie radomsko").
       3. Meta Title i Meta Description.
       
-      ZABRONIONE jest generowanie sekcji takich jak "Wprowadzenie" czy "Rekomendacje SEO". Zwracasz tylko czysty konkret do wdrożenia.`;
+      Nic więcej. Jeśli napiszesz jedno zdanie poradnika, system ulegnie awarii.`;
     }
     else if (step === 3) {
-      systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM. Twoje zadanie to zakodowanie strony głównej w HTML + Tailwind CSS v4.
+      systemContent = `Jesteś KOMPILATOREM KODU HTML + Tailwind CSS v4.
       
-      KRYTYCZNE, BEZWZGLĘDNE ZASADY:
-      1. ZAKAZ PLACEHOLDERÓW: Kategorycznie zabraniam używania fraz takich jak "Innowacyjne Rozwiązania", "Wsparcie Techniczne" czy "Lorem Ipsum". MUSISZ wstawić do kodu prawdziwe teksty o szkole w Radomsku, metodach Teddy Eddie i Savvy Ed pobrane z DOC_10.
-      2. WYMAGANA ARCHITEKTURA (Jeśli pominiesz jedną, projekt zostanie odrzucony):
-         - <header> z Topbarem kontaktowym (telefon, adres) i szerokim paskiem nawigacji.
-         - <section class="hero"> z asymetrycznym układem, potężnym H1 i mocnym CTA.
-         - <section class="oferta"> zbudowana w nowoczesnym BENTO GRID (osobne kafle dla Dzieci, Młodzieży, Dorosłych).
-         - <section class="opinie-dlaczego-my"> z liczbami i konkretnymi dowodami.
-         - <section class="faq"> na dole strony.
-         - <footer> z pełną mapą linków.
-      3. DESIGN PREMIUM: Zastosuj zaawansowane klasy Tailwind: backdrop-blur-xl, radial-gradients, text-[clamp(...)], zaokrąglenia (rounded-3xl).
+      KRYTYCZNE ZASADY (ZERO KOMPROMISÓW):
+      1. UŻYJ PRAWDZIWYCH DANYCH: Przeanalizuj tekst od użytkownika. Musisz wstawić frazy "Teddy Eddie", "Savvy Ed", nazwy kursów i miasto.
+      2. ZAKAZ PLACEHOLDERÓW: Zabraniam pisania "Usługa 1", "Twój Nowoczesny Biznes" itp.
+      3. PEŁNA STRUKTURA: Zbuduj potężną stronę (Topbar, Mega Menu, Hero, Bento Grid z ofertą Dzieci/Młodzież/Dorośli, Sekcja Dlaczego My, Rozbudowany Footer).
+      4. DESIGN PREMIUM: Użyj asymetrii, glassmorphismu (bg-white/10 backdrop-blur-lg), potężnej typografii (text-5xl md:text-7xl tracking-tighter). Odrzuć nudne 3 kolumny.
       
-      ZWRÓĆ TYLKO I WYŁĄCZNIE CZYSTY KOD W ZNACZNIKACH <HTML> cały twój kod </HTML>. JSON-LD ma znaleźć się wewnątrz <head>.`;
+      Zwróć TYLKO I WYŁĄCZNIE kod zaczynający się od <!DOCTYPE html> i kończący na </html>. Brak znaczników Markdown. Brak komentarzy.`;
     } 
     else if (step === 4) {
-      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER.
-      Wygeneruj dokumentację wdrożeniową na bazie wygenerowanego kodu HTML:
+      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Generuj dokumentację wdrożeniową.
       <DOC_2> Architektura SP Page Builder. </DOC_2>
       <DOC_3> Tabela wdrożeniowa. </DOC_3>
       <DOC_7> Master Handoff. </DOC_7>
@@ -88,7 +83,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o', 
-        temperature: 0.2, // OBNIŻONA TEMPERATURA = MNIEJ FANTAZJOWANIA, WIĘCEJ TRZYMANIA SIĘ FAKTÓW
+        temperature: 0.1, // Ekstremalnie niska temperatura - zero halucynacji, 100% trzymania się poleceń
         max_tokens: 4096, 
         messages: [
           { role: 'system', content: systemContent },
