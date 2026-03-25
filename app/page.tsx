@@ -68,10 +68,10 @@ export default function Home() {
     let promptToSend = input.trim();
 
     if (!promptToSend) {
-      if (activeStep === 1) promptToSend = "Zbuduj kompleksową strategię i architekturę informacji (Dokumenty 1, 9, 10, 12) dla tego projektu, opartą na głębokiej analizie biznesowej.";
-      else if (activeStep === 2) promptToSend = "Opracuj rygorystyczną optymalizację SEO, dobór słów kluczowych oraz kod JSON-LD dopasowany do branży (Dokument 11).";
-      else if (activeStep === 3) promptToSend = "Wygeneruj w pełni semantyczny, dostępny i responsywny kod HTML z użyciem Tailwind v4. Zastosuj nowoczesny design (fluid typography, glassmorphism), wdrażając wytyczne z poprzednich etapów i JSON-LD w sekcji head.";
-      else if (activeStep === 4) promptToSend = "Zmapuj cały wygenerowany projekt na architekturę Joomla oraz SP Page Builder (Dokumenty 2, 3, 7, 13).";
+      if (activeStep === 1) promptToSend = `Zbuduj potężną strategię i architekturę informacji dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie i koniecznie uwzględnij w dokumentach ich autentyczną ofertę (Teddy Eddie, Savvy Ed, egzaminy, dorośli).`;
+      else if (activeStep === 2) promptToSend = `Opracuj rygorystyczną optymalizację SEO i zalecenia dla AI (Dokument 11), wykorzystując dane z poprzedniego etapu. Zbuduj poprawny JSON-LD.`;
+      else if (activeStep === 3) promptToSend = `Bazując na strategii i SEO, wygeneruj PEŁNY, niesamowicie rozbudowany kod wizualny HTML+Tailwind (minimum 6 wielkich sekcji: topbar, mega-menu, hero, oferta, opinie, footer). ZABRONIONE są krótkie placeholdery. Użyj prawdziwych tekstów z Etapu 1 (Teddy Eddie itp.).`;
+      else if (activeStep === 4) promptToSend = `Zmapuj wygenerowany projekt na architekturę Joomla oraz SP Page Builder (Dokumenty 2, 3, 7, 13).`;
       
       setInput(promptToSend);
     }
