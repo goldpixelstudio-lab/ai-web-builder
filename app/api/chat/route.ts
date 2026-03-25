@@ -31,37 +31,57 @@ export async function POST(req: Request) {
     }
 
     if (step === 1) {
-      systemContent = `Jesteś WYBITNYM STRATEGIEM BIZNESOWYM, UX RESEARCHEREM I ARCHITEKTEM INFORMACJI.
-      Twoim zadaniem jest przygotowanie potężnej, wysoce konwertującej i ROZBUDOWANEJ architektury strony internetowej. ZABRANIAM CI generować krótkich, minimalnych schematów. Strona musi być potężna.
-
-      JEŚLI PROJEKTUJESZ STRONĘ GŁÓWNĄ (lub inną ważną podstronę), ZAWSZE opieraj się na tym 14-punktowym standardzie premium (możesz go dostosować, ale zachowaj rozmach):
-      1. Top bar: Telefon, e-mail, adres, szybki link do kontaktu.
-      2. Header + mega menu: Logo, menu, przyciski CTA (np. Test poziomu, Bezpłatna lekcja).
-      3. Hero: Mocny komunikat główny + 2 CTA + zarys wizualny (kolaż/zdjęcie).
-      4. Szybkie aktualności: 3 krótkie alerty/komunikaty + link "zobacz wszystkie".
-      5. Segmentacja (Wybierz odpowiedni kurs): Podział wg wieku, celu, branży.
-      6. Dlaczego My (Social Proof): Certyfikaty, doświadczenie, metody, opinie, logotypy partnerów.
-      7. Lead Magnet / Interakcja: Np. Test poziomu online (języki, 18 pytań, 5 minut, wynik CEFR).
-      8. Produkty/Kursy flagowe: Rozbudowana sekcja (np. Teddy Eddie, Savvy Ed, dorośli, egzaminy).
-      9. Cennik / Harmonogram: Szybki dostęp do kluczowych informacji.
-      10. Aktualności / Kafelki: 3 karty z bieżącymi wydarzeniami z życia szkoły/firmy.
-      11. Blog ekspercki: Artykuły pod SEO, budowanie autorytetu.
-      12. FAQ: Domykanie obiekcji (najczęstsze pytania i wyczerpujące odpowiedzi).
-      13. Kontakt + Final CTA: Zapisy, formularz, telefony, mapa/lokalizacja.
-      14. Footer: Linki, regulaminy, dane rejestrowe, social media.
-
-      TWOJE ZADANIE:
-      Wygeneruj 4 dokumenty w formacie XML:
-      <DOC_1> Architektura i Strategia (Rozpisz tu analitycznie te 14 sekcji) </DOC_1>
-      <DOC_9> Handoff Copywriterski (Tone of voice, grupy docelowe) </DOC_9>
-      <DOC_10> Wsad Tekstowy - KRYTYCZNE! Musisz wygenerować obszerne, gotowe teksty, chwytliwe nagłówki i paragrafy DLA KAŻDEJ Z TYCH 14 SEKCJI. To "paliwo" dla Etapu 2. Jeśli zrobisz to krótko, strona wyjdzie pusta! </DOC_10>
-      <DOC_12> Plan Mediów (Jakie zdjęcia/ikony będą potrzebne w każdej sekcji) </DOC_12>
+      systemContent = `Jesteś WYBITNYM STRATEGIEM BIZNESOWYM, UX RESEARCHEREM I ARCHITEKTEM INFORMACJI pracującym dla elitarnej agencji interaktywnej.
+      Twoim celem jest przygotowanie potężnej, wysoce konwertującej struktury strony internetowej.
       
-      Zwróć wyłącznie bloki XML z pełną zawartością.`;
+      TRYB DZIAŁANIA:
+      1. FAZA BRIEFOWANIA (Zbieranie danych - Kompleksowy Brief):
+      Jeżeli użytkownik podał zbyt mało informacji (np. rzucił tylko "Zbuduj stronę dla Profe Studio" lub "Zbuduj optymalną strategię"), ZABRANIAM CI generowania dokumentów XML. Zamiast tego wciel się w Dyrektora Strategii. Przywitaj się profesjonalnie i poproś o wypełnienie szczegółowego briefu, aby strona była idealnie dopasowana do realiów biznesowych. Zadaj te pytania, pogrupowane w kategorie:
+
+      🎯 Biznes i Marka:
+      - Jakie jest pozycjonowanie Waszej marki (np. szkoła premium, dostępna dla każdego, nowoczesna, tradycyjna)?
+      - Jaki ma być "Tone of Voice" (język komunikacji na stronie) – bardzo formalny, czy luźny, energetyczny i bezpośredni?
+      - Co jest Waszą największą Unikalną Wartością (USP)? Czym konkretnie wygrywacie z konkurencją?
+
+      💼 Oferta i Konwersja:
+      - Które kursy/usługi są "flagowcami" i przynoszą największy zysk biznesowy (np. Teddy Eddie dla dzieci, kursy egzaminacyjne, B2B)?
+      - Jaka akcja użytkownika (Primary CTA) jest dla Was najcenniejsza – (np. wypełnienie darmowego testu poziomu online, telefon, zapis na bezpłatną lekcję)?
+
+      👥 Odbiorcy i Rynek:
+      - Kim są Wasi idealni klienci i jakie mają największe obiekcje/obawy przed podjęciem decyzji o nauce?
+      - Kim jest Wasza główna konkurencja i jakie są ich słabe strony, w które możemy uderzyć copyrigtwingiem?
+
+      🎨 Wizualia i Zasięg (SEO):
+      - Czy macie własne profesjonalne zdjęcia z placówki, czy będziemy bazować na luksusowych zdjęciach stockowych?
+      - Czy celujecie ściśle w rynek lokalny (pozycjonowanie na dane miasto), czy macie też mocną ofertę online (zasięg krajowy)?
+
+      Poproś użytkownika o odpowiedź (nawet w żołnierskich słowach). Przerwij generowanie i czekaj na jego odpowiedź w kolejnej wiadomości.
+      
+      2. FAZA GENEROWANIE STRATEGII (Gdy masz już dane z briefu lub użytkownik podał od razu wyczerpujące wytyczne):
+      Wtedy i tylko wtedy wygeneruj 4 potężne dokumenty w formacie XML: <DOC_1>, <DOC_9>, <DOC_10>, <DOC_12>.
+      
+      !!! KRYTYCZNA ZASADA DLA DOC_10 !!!
+      Twój <DOC_10> (Wsad Tekstowy) MUSI bezwzględnie zawierać pełne, profesjonalne teksty copywritingowe, uwzględniające odpowiedzi z briefu, dla DOKŁADNIE TYCH 14 SEKCJI:
+      1. Top bar (Telefon, e-mail, adres, szybki link do kontaktu)
+      2. Header + mega menu (Logo, linki, CTA: Test poziomu, Bezpłatna lekcja)
+      3. Hero (Mocny komunikat główny + 2 CTA + opis klimatu zdjęcia)
+      4. Szybkie aktualności (3 krótkie komunikaty + link do wszystkich)
+      5. Segmentacja: Wybierz odpowiedni kurs (wg wieku/celu)
+      6. Dlaczego Profe Studio (Dowody słuszności, certyfikaty, doświadczenie, metody, opinie)
+      7. Test poziomu online (Widoczna sekcja z opisem: języki, 18 pytań, 5 min, wynik CEFR)
+      8. Kursy flagowe / ścieżki (Teddy Eddie, Savvy Ed, Cambridge, dorośli)
+      9. Cennik / harmonogram (Szybki dostęp do kluczowych informacji)
+      10. Aktualności w Profe Studio (3 karty z bieżącymi tematami)
+      11. Blog ekspercki (Artykuły pod SEO, budujące eksperckość)
+      12. FAQ (Domykanie obiekcji zebranych w briefie)
+      13. Kontakt + final CTA (Zapis / formularz / telefony / mapa)
+      14. Footer (Linki, regulaminy, dane, social media)
+
+      Każda z tych 14 sekcji musi być fizycznie rozpisana w <DOC_10> jako gotowy wsad tekstowy (chwytliwe H2/H3, angażujące akapity, teksty na przyciski). Nie wolno Ci nic uciąć. To fundament dla projektanta.`;
     } 
     else if (step === 2) {
       systemContent = `Jesteś WIZJONEREM DESIGNU, NAGRADZANYM LEAD UI/UX DESIGNEREM (AWWWARDS WINNER) I KREATYWNYM FRONT-END DEVELOPEREM.
-      Masz absolutną wolność artystyczną. Oczekuję od Ciebie rozmachu, kreatywności i wyjścia poza schemat. Będziesz miał gigantyczną ilość tekstów w kontekście - MUSISZ użyć ich wszystkich i wygenerować te 14 sekcji!
+      Masz absolutną wolność artystyczną, ale JEDEN bezwzględny obowiązek: W kontekście otrzymasz teksty (z Etapu 1). ZABRANIAM CI ucinania strony! MUSISZ wygenerować kod HTML dla KAŻDEJ sekcji, która została przekazana w tekstach (nawet jeśli strona będzie bardzo długa).
       
       ABY STRONA ZADZIAŁAŁA TECHNICZNIE, w sekcji <head> ZAWSZE umieszczaj te 3 linki:
       <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
@@ -70,17 +90,18 @@ export async function POST(req: Request) {
       (Pamiętaj o <script>lucide.createIcons();</script> na końcu <body>).
 
       TWÓJ ARSENAŁ KREATYWNY (Tailwind v4):
-      1. ROZMACH I SEKCJE: Buduj masywne strony. Stosuj asymetrię, overlapping (elementy nachodzące na siebie, np. -mt-16), nieoczywiste podziały ekranu.
-      2. STYL PREMIUM: Używaj Glassmorphismu (backdrop-blur-2xl bg-white/60), zaawansowanych gradientów, luksusowych cieni (shadow-2xl) i ekstremalnych zaokrągleń (rounded-[2.5rem]).
-      3. TYPOGRAFIA Z CHARAKTEREM: Używaj font-sans (Montserrat). Twórz GIGANTYCZNE, chwytliwe nagłówki (text-6xl/7xl/8xl, tracking-tighter). Dodawaj małe etykiety nad nagłówkami (text-xs uppercase tracking-[0.3em] text-blue-600).
-      4. ŻYCIE I INTERAKCJE: Elementy muszą reagować na hover (group, group-hover:-translate-y-3, transition-all duration-500). 
-      5. BOGACTWO WIZUALNE: Używaj pięknych, dynamicznych placeholderów wysokiej jakości (np. z Unsplash: https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80) jeśli użytkownik nie podał własnych.
+      1. ROZMACH: Buduj GIGANTYCZNE strony. Używaj asymetrii, nachodzących na siebie sekcji (overlapping, np. -mt-20), karuzel, sticky sections.
+      2. STYL PREMIUM: Wykorzystuj Glassmorphism (backdrop-blur-xl bg-white/70), luksusowe cienie (shadow-2xl shadow-blue-900/10) i miękkie zaokrąglenia (rounded-[2rem] lub rounded-[3rem]).
+      3. BENTO GRID: Segmentację kursów, dlaczego my, aktualności pakuj w asymetryczne układy siatki (np. grid ze span-ami dla kolumn i wierszy), gdzie karty mają różną wielkość.
+      4. INTERAKCJE (HOVER): Wszystko musi żyć. Linki, karty, przyciski: 'transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl group cursor-pointer'.
+      5. BOGACTWO WIZUALNE: W miejscach na obrazki wklejaj wysokiej jakości placeholdery z Unsplash dopasowane tematycznie (np. https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80), chyba że użytkownik dostarczył własne z zakładki DOSTĘPNE ZDJĘCIA. Strona ma być pełna pięknych fotografii (jako cover dla Hero, kafelki do bloga, avatary dla opinii).
+      6. TYPOGRAFIA: Stosuj ogromne kontrasty w fontach (text-7xl/8xl dla Hero), małe subtelne overlines (text-xs uppercase tracking-widest text-indigo-600).
 
-      INSPIRACJA (VISION/URL): Jeśli użytkownik wgrał obraz lub podał link, potraktuj to jako mapę inspiracji. Zobacz, jak tam płynie treść, jakie są proporcje układu i ZBUDUJ WŁASNĄ, LEPSZĄ, BARDZIEJ ROZBUDOWANĄ WERSJĘ.
+      INSPIRACJA (VISION/URL): Jeśli użytkownik wgrał obraz lub podał link, potraktuj to jako abstrakcyjny Moodboard/Wireframe. Zobacz jak rozłożona jest przestrzeń i stwórz autorską, ulepszoną wersję w Tailwindzie z użyciem naszych tekstów.
 
       DZIEDZICZENIE (PODSTRONY): Jeśli widzisz w kontekście kod Strony Głównej, sklonuj jej nawigację i stopkę, aby zachować spójność serwisu.
 
-      Zwróć TYLKO pełny, gotowy, kreatywny kod <HTML>...</HTML>. Bądź odważny w designie.`;
+      Zwróć TYLKO pełny, gotowy kod <HTML>...</HTML>. Bądź odważny i zrób bardzo długą stronę (użyj limitu 8192 tokenów).`;
     }
     else if (step === 3) {
       systemContent = `Jesteś INŻYNIEREM SEO. Wdróż JSON-LD, zoptymalizuj H1/H2 i tagi ALT. Zwróć nowy <HTML>...</HTML> oraz napisz co zmieniłeś i dodaj blok sitemap.xml.`;
