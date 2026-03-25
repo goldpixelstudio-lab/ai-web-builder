@@ -3,16 +3,26 @@
 import { useState, useEffect, useRef } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 
+interface UploadedImage {
+  name: string;
+  dataUrl: string;
+}
+
+interface PageData {
+  id: string;
+  name: string;
+  isHome: boolean;
+  fileName: string;
+  documents: Record<string, string>;
+  htmlContent: string | null;
+  images: UploadedImage[];
+}
+
 interface Project {
   id: string;
   name: string;
   date: string;
-  previewHtml: string;
-}
-
-interface UploadedImage {
-  name: string;
-  dataUrl: string;
+  pages: PageData[];
 }
 
 export default function Home() {
@@ -20,40 +30,55 @@ export default function Home() {
 
   const [currentView, setCurrentView] = useState<"landing" | "list" | "wizard">("landing");
   const [projects, setProjects] = useState<Project[]>([]);
+  
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [activePageId, setActivePageId] = useState<string | null>(null);
+  
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
-  const [currentProjectName, setCurrentProjectName] = useState("Nowy Projekt Profe Studio");
   const [menuOpen, setMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [documents, setDocuments] = useState<Record<string, string>>({});
-  
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [images, setImages] = useState<UploadedImage[]>([]);
+  
   const [viewMode, setViewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [showCode, setShowCode] = useState(false);
   const [aiResponseText, setAiResponseText] = useState<string | null>(null);
-  
-  const [images, setImages] = useState<UploadedImage[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const viewWidths = { desktop: "100%", tablet: "768px", mobile: "390px" };
 
   useEffect(() => {
-    const savedProjects = localStorage.getItem("profeProjects");
-    if (savedProjects) setProjects(JSON.parse(savedProjects));
-    
+    const savedProjects = localStorage.getItem("profeProjectsV2");
+    if (savedProjects) {
+        setProjects(JSON.parse(savedProjects));
+    } else {
+        const oldProjects = localStorage.getItem("profeProjects");
+        if (oldProjects) {
+            const parsed = JSON.parse(oldProjects);
+            const migrated: Project[] = parsed.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                date: p.date,
+                pages: [{
+                    id: "home_" + p.id,
+                    name: "Strona Główna",
+                    isHome: true,
+                    fileName: "index.html",
+                    documents: {},
+                    htmlContent: p.previewHtml !== "<div class='p-4'>Brak wygenerowanego podglądu...</div>" ? p.previewHtml : null,
+                    images: []
+                }]
+            }));
+            setProjects(migrated);
+            localStorage.setItem("profeProjectsV2", JSON.stringify(migrated));
+        }
+    }
     const savedTheme = localStorage.getItem("profeTheme");
     if (savedTheme === "dark") setDarkMode(true);
-
-    const activeDocs = localStorage.getItem("profeActiveDocs");
-    if (activeDocs) setDocuments(JSON.parse(activeDocs));
-
-    const activeHtml = localStorage.getItem("profeActiveHtml");
-    if (activeHtml) setHtmlContent(activeHtml);
-    
-    const activeImages = localStorage.getItem("profeActiveImages");
-    if (activeImages) setImages(JSON.parse(activeImages));
   }, []);
 
   const toggleTheme = () => {
@@ -76,30 +101,128 @@ export default function Home() {
     }
   };
 
+  const saveCurrentWorkToProject = () => {
+    if (!activeProjectId || !activePageId) return;
+    setProjects(prev => {
+        const updated = prev.map(proj => {
+            if (proj.id !== activeProjectId) return proj;
+            return {
+                ...proj,
+                pages: proj.pages.map(page => {
+                    if (page.id !== activePageId) return page;
+                    return { ...page, documents, htmlContent, images };
+                })
+            };
+        });
+        localStorage.setItem("profeProjectsV2", JSON.stringify(updated));
+        return updated;
+    });
+  };
+
+  const loadPageToWorkspace = (projectId: string, pageId: string) => {
+    const proj = projects.find(p => p.id === projectId);
+    if (!proj) return;
+    const page = proj.pages.find(p => p.id === pageId);
+    if (!page) return;
+
+    setDocuments(page.documents || {});
+    setHtmlContent(page.htmlContent || null);
+    setImages(page.images || []);
+    setActiveStep(1);
+    setAiResponseText(null);
+    setInput("");
+  };
+
+  const createNewProject = () => {
+    const name = prompt("Podaj nazwę nowego projektu:");
+    if (!name) return;
+    
+    const newProjectId = Date.now().toString();
+    const defaultPage: PageData = {
+        id: "page_" + Date.now(),
+        name: "Strona Główna",
+        isHome: true,
+        fileName: "index.html",
+        documents: {},
+        htmlContent: null,
+        images: []
+    };
+    
+    const newProject: Project = {
+        id: newProjectId,
+        name: name,
+        date: new Date().toLocaleDateString(),
+        pages: [defaultPage]
+    };
+
+    const updatedProjects = [...projects, newProject];
+    setProjects(updatedProjects);
+    localStorage.setItem("profeProjectsV2", JSON.stringify(updatedProjects));
+    
+    setActiveProjectId(newProjectId);
+    setActivePageId(defaultPage.id);
+    loadPageToWorkspace(newProjectId, defaultPage.id);
+    setCurrentView("wizard");
+  };
+
+  const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    saveCurrentWorkToProject();
+    const newProjId = e.target.value;
+    const proj = projects.find(p => p.id === newProjId);
+    if (proj && proj.pages.length > 0) {
+        setActiveProjectId(newProjId);
+        setActivePageId(proj.pages[0].id);
+        loadPageToWorkspace(newProjId, proj.pages[0].id);
+    }
+  };
+
+  const handlePageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    saveCurrentWorkToProject();
+    const val = e.target.value;
+    
+    if (val === "NEW_PAGE" && activeProjectId) {
+        const pageName = prompt("Podaj nazwę nowej podstrony (np. O nas, Kontakt):");
+        if (!pageName) return;
+        
+        const safeName = pageName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        const newPage: PageData = {
+            id: "page_" + Date.now(),
+            name: pageName,
+            isHome: false,
+            fileName: `${safeName}.html`,
+            documents: {},
+            htmlContent: null,
+            images: []
+        };
+        
+        setProjects(prev => {
+            const updated = prev.map(p => p.id === activeProjectId ? { ...p, pages: [...p.pages, newPage] } : p);
+            localStorage.setItem("profeProjectsV2", JSON.stringify(updated));
+            return updated;
+        });
+        
+        setActivePageId(newPage.id);
+        loadPageToWorkspace(activeProjectId, newPage.id);
+    } else {
+        setActivePageId(val);
+        if (activeProjectId) loadPageToWorkspace(activeProjectId, val);
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-
     files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
+          let width = img.width; let height = img.height;
           const MAX_SIZE = 1200;
-          if (width > height && width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          } else if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
+          if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } 
+          else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+          canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           
@@ -108,11 +231,7 @@ export default function Home() {
           const safeName = baseName.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
           const finalName = `${safeName}.webp`;
 
-          setImages(prev => {
-            const newImages = [...prev, { name: finalName, dataUrl: webpDataUrl }];
-            localStorage.setItem("profeActiveImages", JSON.stringify(newImages));
-            return newImages;
-          });
+          setImages(prev => [...prev, { name: finalName, dataUrl: webpDataUrl }]);
         };
         img.src = event.target?.result as string;
       };
@@ -122,68 +241,67 @@ export default function Home() {
   };
 
   const removeImage = (nameToRemove: string) => {
-    setImages(prev => {
-      const newImages = prev.filter(img => img.name !== nameToRemove);
-      localStorage.setItem("profeActiveImages", JSON.stringify(newImages));
-      return newImages;
-    });
+    setImages(prev => prev.filter(img => img.name !== nameToRemove));
   };
 
-  const getRenderedHtml = () => {
-    let finalHtml = htmlContent || "";
+  const getRenderedHtml = (rawHtml: string | null, imgs: UploadedImage[]) => {
+    let finalHtml = rawHtml || "";
     if (!finalHtml) return finalHtml;
-    images.forEach(img => {
+    imgs.forEach(img => {
         const regex = new RegExp(`src=["']([^"']*${img.name})["']`, 'gi');
         finalHtml = finalHtml.replace(regex, `src="${img.dataUrl}"`);
     });
     return finalHtml;
   };
 
-  const saveProject = () => {
-    const newProject: Project = {
-      id: Date.now().toString(),
-      name: currentProjectName,
-      date: new Date().toLocaleDateString(),
-      previewHtml: getRenderedHtml() || "<div class='p-4'>Brak wygenerowanego podglądu...</div>"
-    };
-    const updated = [...projects, newProject];
-    setProjects(updated);
-    localStorage.setItem("profeProjects", JSON.stringify(updated));
-    alert("Projekt zapisany w Archiwum!");
-  };
-
-  const deleteProject = (id: string) => {
-    const updated = projects.filter(p => p.id !== id);
-    setProjects(updated);
-    localStorage.setItem("profeProjects", JSON.stringify(updated));
-  };
+  const activeProject = projects.find(p => p.id === activeProjectId);
+  const activePage = activeProject?.pages.find(p => p.id === activePageId);
 
   const applyAutopilot = () => {
+    if (!activeProject || !activePage) return;
     let basePrompt = "";
-    if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla "Profe Studio Radomsko". Ustal konkretną strukturę, nagłówki i copy. Wyszukaj ich w sieci.`;
-    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj nowoczesny, luksusowy kod HTML na bazie Strategii z Etapu 1. Zastosuj wytyczne o CSS, Tailwind, BENTO GRID, asymetrii. Wstaw załączone zdjęcia.`;
-    else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Przeanalizuj obecny kod HTML. Uzupełnij atrybuty alt, zoptymalizuj nagłówki pod kątem pozycjonowania (np. kursy językowe Radomsko) i wygeneruj pełny kod JSON-LD (Schema). Zwróć ulepszony HTML i krótko opisz, co zmieniłeś.`;
-    else if (activeStep === 4) basePrompt = `Zmapuj projekt na Joomla i SP Page Builder.`;
+    if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię. Pracujemy nad stroną/podstroną: ${activePage.name}. Dopasuj strukturę i teksty konkretnie do jej celu.`;
+    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny kod HTML dla podstrony: ${activePage.name}. Zachowaj 100% spójności wizualnej (kolory, fonty, styl przycisków i kart) ze Stroną Główną. Pamiętaj o podlinkowaniu menu. Zwróć tylko HTML.`;
+    else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Optymalizuj kod HTML podstrony ${activePage.name} (JSON-LD, tagi ALT, dopracowane nagłówki). Odpowiedz co zmieniłeś i zwróć nowy kod.`;
+    else if (activeStep === 4) basePrompt = `Zmapuj ten kod na architekturę Joomla / SP Page Builder.`;
     setInput(basePrompt);
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !activeProject || !activePage) return;
     setIsLoading(true);
     setAiResponseText(null); 
 
-    let projectContext = "";
+    let projectContext = `\n\n--- INFORMACJE O SYSTEMIE ---\nPracujesz nad projektem: ${activeProject.name}.\nAktualnie edytowana podstrona: ${activePage.name} (plik: ${activePage.fileName}).\n`;
+    
+    const siteMap = activeProject.pages.map(p => `- ${p.name} -> link: ${p.fileName}`).join("\n");
+    projectContext += `\n--- MAPA WITRYNY (UŻYJ W MENU I STOPCE) ---\n${siteMap}\n`;
+
     if (activeStep > 1 && Object.keys(documents).length > 0) {
-      projectContext += "\n\n--- WIEDZA Z ETAPU 1 ---\n";
-      if (documents.doc1) projectContext += `STRATEGIA:\n${documents.doc1.substring(0, 500)}...\n\n`;
-      if (documents.doc10) projectContext += `TEKSTY (BARDZO WAŻNE):\n${documents.doc10}\n`;
+      projectContext += "\n--- WIEDZA Z ETAPU 1 (Dla tej podstrony) ---\n";
+      if (documents.doc1) projectContext += `STRATEGIA:\n${documents.doc1.substring(0, 500)}...\n`;
+      if (documents.doc10) projectContext += `TEKSTY:\n${documents.doc10}\n`;
     }
+
     if ((activeStep === 2 || activeStep === 3) && htmlContent) {
-      projectContext += `\n--- OBECNY KOD WIZUALNY STRONY (do modyfikacji/optymalizacji) ---\n${htmlContent}\n`;
+      projectContext += `\n--- OBECNY KOD WIZUALNY TEJ PODSTRONY ---\n${htmlContent}\n`;
     }
+
+    // INTELIGENTNE PRZEKAZANIE DESIGN SYSTEMU Z HOME
+    if ((activeStep === 2 || activeStep === 3) && !activePage.isHome) {
+        const homePage = activeProject.pages.find(p => p.isHome);
+        if (homePage && homePage.htmlContent) {
+            const fullHome = homePage.htmlContent;
+            const topPart = fullHome.substring(0, 2500); // Łapie HEAD, STYLE, NAV, HERO
+            const bottomPart = fullHome.substring(fullHome.length - 2000); // Łapie STOPKĘ
+            
+            projectContext += `\n--- GLOBALNY DESIGN SYSTEM (KOD STRONY GŁÓWNEJ) ---\nTo jest kod referencyjny Strony Głównej. MUSISZ utrzymać z nim spójność!\nZadania dla Ciebie:\n1. Skopiuj cały blok <style> z sekcji <head> (zmienne CSS).\n2. Skopiuj dokładnie strukturę i klasy <header> oraz <nav>.\n3. Skopiuj dokładnie strukturę i klasy <footer>.\n4. W nowej podstronie stosuj ten sam język designu: podglądnij poniżej jakich klas Tailwind użyto do tła, przycisków czy nagłówków na Głównej i zastosuj ten sam "vibe" w nowym contencie.\n\nOto początek Głównej:\n${topPart}\n\n[...środek wycięty...]\n\nOto koniec Głównej:\n${bottomPart}\n`;
+        }
+    }
+
     if (images.length > 0 && (activeStep === 2 || activeStep === 3)) {
         const imageNames = images.map(img => img.name).join(", ");
-        projectContext += `\n--- DOSTĘPNE ZDJĘCIA ---\nUżytkownik wgrał pliki graficzne: ${imageNames}. Użyj ich w tagach img (np. src="${images[0].name}") zamiast placeholderów.\n`;
+        projectContext += `\n--- DOSTĘPNE ZDJĘCIA ---\nWgrane pliki: ${imageNames}. Użyj ich w tagach img (np. src="${images[0].name}").\n`;
     }
 
     const payloadMessage = input + projectContext;
@@ -206,30 +324,15 @@ export default function Home() {
           return match ? match[1].trim() : null;
         };
 
-        if (activeStep === 1) {
+        if (activeStep === 1 || activeStep === 4) {
           let d1 = extractDoc("DOC_1"); let d9 = extractDoc("DOC_9"); let d10 = extractDoc("DOC_10"); let d12 = extractDoc("DOC_12");
-          if (d1 || d10) {
+          let doc2 = extractDoc("DOC_2"); let doc3 = extractDoc("DOC_3"); let doc7 = extractDoc("DOC_7"); let doc13 = extractDoc("DOC_13");
+          
+          if (d1 || d10 || doc2 || doc3) {
             const newDocs = { ...documents };
-            if (d1) newDocs["doc1"] = d1;
-            if (d9) newDocs["doc9"] = d9;
-            if (d10) newDocs["doc10"] = d10;
-            if (d12) newDocs["doc12"] = d12;
+            if (d1) newDocs["doc1"] = d1; if (d9) newDocs["doc9"] = d9; if (d10) newDocs["doc10"] = d10; if (d12) newDocs["doc12"] = d12;
+            if (doc2) newDocs["doc2"] = doc2; if (doc3) newDocs["doc3"] = doc3; if (doc7) newDocs["doc7"] = doc7; if (doc13) newDocs["doc13"] = doc13;
             setDocuments(newDocs);
-            localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
-            isDocGenerated = true;
-          }
-        }
-        
-        if (activeStep === 4) {
-          let doc2 = extractDoc("DOC_2");
-          if (doc2) {
-            const newDocs = { ...documents };
-            if (doc2) newDocs["doc2"] = doc2;
-            const doc3 = extractDoc("DOC_3"); if (doc3) newDocs["doc3"] = doc3;
-            const doc7 = extractDoc("DOC_7"); if (doc7) newDocs["doc7"] = doc7;
-            const doc13 = extractDoc("DOC_13"); if (doc13) newDocs["doc13"] = doc13;
-            setDocuments(newDocs);
-            localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
             isDocGenerated = true;
           }
         }
@@ -247,8 +350,7 @@ export default function Home() {
         if (html) {
           let cleanHtml = html.replace(/```html/gi, "").replace(/```/g, "").trim();
           setHtmlContent(cleanHtml);
-          localStorage.setItem("profeActiveHtml", cleanHtml);
-          
+          isDocGenerated = true;
           aiText = aiText.replace(new RegExp(`<HTML>[\\s\\S]*?<\\/HTML>`, 'i'), "")
                          .replace(/```html[\s\S]*?```/i, "")
                          .replace(/(<!DOCTYPE html>[\s\S]*<\/html>)/i, "")
@@ -256,12 +358,10 @@ export default function Home() {
         }
 
         const cleanAiText = aiText.replace(/<DOC_[0-9]+>[\s\S]*?<\/DOC_[0-9]+>/gi, "").trim();
-        if (cleanAiText) {
-           setAiResponseText(cleanAiText);
-        } else if (isDocGenerated) {
-           setAiResponseText(null);
-        }
-
+        if (cleanAiText) setAiResponseText(cleanAiText);
+        else if (isDocGenerated) setAiResponseText(null);
+        
+        saveCurrentWorkToProject();
         setTimeout(() => setInput(""), 1500);
       }
     } catch (e) {
@@ -272,62 +372,35 @@ export default function Home() {
     }
   };
 
-  const downloadHtmlPackage = () => {
-    if (!htmlContent) {
-      alert("⚠️ Brak wygenerowanego kodu wizualnego.");
-      return;
-    }
-    const processedHtml = getRenderedHtml();
-    const fullHtml = `<!DOCTYPE html>
-<html lang="pl" class="antialiased">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${currentProjectName} - Export</title>
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
-</head>
-<body class="bg-gray-50 text-slate-900">
-    ${processedHtml}
-    <script>lucide.createIcons();</script>
-</body>
-</html>`;
-    const blob = new Blob([fullHtml], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${currentProjectName.replace(/\s+/g, '-').toLowerCase()}-export.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadFullProject = () => {
+    if (!activeProject) return;
+    saveCurrentWorkToProject(); 
+    
+    activeProject.pages.forEach((page, index) => {
+        if (!page.htmlContent) return;
+        setTimeout(() => {
+            const processedHtml = getRenderedHtml(page.htmlContent, page.images);
+            const fullHtml = `<!DOCTYPE html>\n<html lang="pl" class="antialiased">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>${page.name} - ${activeProject.name}</title>\n    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>\n    <script src="https://unpkg.com/lucide@latest"></script>\n    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">\n</head>\n<body class="bg-gray-50 text-slate-900">\n    ${processedHtml}\n    <script>lucide.createIcons();</script>\n</body>\n</html>`;
+            const blob = new Blob([fullHtml], { type: "text/html" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = page.fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, index * 400); 
+    });
   };
 
-  if (status === "loading") {
-    return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-bold tracking-widest uppercase text-sm">Weryfikacja tożsamości...</div>;
-  }
-
-  if (status === "unauthenticated" || !session) {
-    return (
+  if (status === "loading") return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-bold tracking-widest uppercase text-sm">Weryfikacja tożsamości...</div>;
+  if (status === "unauthenticated" || !session) return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center font-sans">
-          <div className="text-center mb-10">
-            <h1 className="text-5xl font-black tracking-tighter text-white uppercase">Profe<span className="text-red-600">Architect</span> OS</h1>
-            <p className="text-xs font-bold tracking-[0.3em] text-red-500 uppercase mt-4">Dostęp ściśle strzeżony</p>
-          </div>
-          <button onClick={() => signIn('google')} className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] flex items-center">
-            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Zaloguj przez Google
-          </button>
-          <p className="text-[9px] text-slate-600 uppercase tracking-widest mt-8 max-w-xs text-center">Tylko administrator przypisany do tego środowiska otrzyma dostęp. Wszelkie inne próby logowania zostaną odrzucone.</p>
+          <div className="text-center mb-10"><h1 className="text-5xl font-black tracking-tighter text-white uppercase">Profe<span className="text-red-600">Architect</span> OS</h1></div>
+          <button onClick={() => signIn('google')} className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)]">Zaloguj przez Google</button>
       </div>
-    )
-  }
+  )
 
   if (currentView === "landing") {
     return (
@@ -335,20 +408,24 @@ export default function Home() {
         <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center justify-center font-sans transition-colors duration-300">
           <div className="absolute top-8 text-center w-full">
             <h1 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white uppercase">Profe<span className="text-red-600">Architect</span> OS</h1>
-            <p className="text-sm font-bold tracking-widest text-gray-400 uppercase mt-2">Zalogowany jako {session?.user?.email}</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-8 items-center justify-center w-full max-w-5xl px-6">
-            <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); }} className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:shadow-red-500/40 transition-all duration-500 hover:-translate-y-3 group flex flex-col items-center">
-              <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" /></svg>
+            <button onClick={createNewProject} className="w-full sm:w-1/2 bg-red-600 hover:bg-red-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center">
               <span className="text-4xl font-black uppercase tracking-tight">Nowy Projekt</span>
             </button>
-            <button onClick={() => setCurrentView("list")} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:shadow-gray-900/40 transition-all duration-500 hover:-translate-y-3 group flex flex-col items-center">
-              <svg className="w-20 h-20 mb-6 group-hover:scale-110 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-              <span className="text-4xl font-black uppercase tracking-tight">Archiwum</span>
+            <button onClick={() => {
+                if(projects.length > 0) {
+                    setActiveProjectId(projects[0].id);
+                    setActivePageId(projects[0].pages[0].id);
+                    loadPageToWorkspace(projects[0].id, projects[0].pages[0].id);
+                    setCurrentView("wizard");
+                } else {
+                    alert("Brak projektów. Stwórz nowy.");
+                }
+            }} className="w-full sm:w-1/2 bg-gray-900 dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 text-white py-20 rounded-[2.5rem] shadow-2xl hover:-translate-y-3 group flex flex-col items-center">
+              <span className="text-4xl font-black uppercase tracking-tight">Otwórz Warsztat</span>
             </button>
           </div>
-          <button onClick={toggleTheme} className="fixed bottom-8 right-8 p-4 bg-white dark:bg-slate-800 rounded-full shadow-xl border border-gray-100 dark:border-slate-700 text-gray-800 dark:text-white">{darkMode ? "☀️" : "🌙"}</button>
-          <button onClick={() => signOut()} className="fixed bottom-8 left-8 p-4 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full shadow-xl border border-slate-300 dark:border-slate-700 font-bold text-xs uppercase tracking-widest hover:bg-slate-300 dark:hover:bg-slate-700 transition">Wyloguj</button>
         </div>
       </div>
     );
@@ -359,32 +436,29 @@ export default function Home() {
       <div className="flex flex-col h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 overflow-hidden font-sans text-sm transition-colors duration-300">
         <nav className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-6 shrink-0 z-50 shadow-sm transition-colors duration-300">
           <div className="flex items-center space-x-10">
-            <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => setCurrentView("landing")}>Profe<span className="text-red-600">Architect</span> OS</span>
-            <div className="relative">
-              <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center text-gray-600 dark:text-slate-400 hover:text-red-600 font-bold uppercase text-[11px] tracking-widest">
-                Menu <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-              </button>
-              {menuOpen && (
-                <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden py-2 border border-gray-100 dark:border-slate-700 z-[100]">
-                  <button onClick={() => { setActiveStep(1); setCurrentView("wizard"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-red-600">Warsztat Roboczy</button>
-                  <button onClick={() => { setCurrentView("list"); setMenuOpen(false); }} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-slate-700 font-bold text-xs uppercase text-gray-700 dark:text-white">Archiwum</button>
-                </div>
-              )}
-            </div>
+            <span className="text-xl font-black tracking-tighter cursor-pointer dark:text-white" onClick={() => { saveCurrentWorkToProject(); setCurrentView("landing"); }}>Profe<span className="text-red-600">Architect</span></span>
+            
+            {activeProject && (
+              <div className="flex items-center space-x-2 bg-gray-50 dark:bg-slate-800 p-1.5 rounded-xl border border-gray-200 dark:border-slate-700">
+                <select value={activeProjectId || ""} onChange={handleProjectChange} className="bg-transparent font-bold text-xs outline-none cursor-pointer text-gray-700 dark:text-gray-300 px-2 uppercase tracking-wide">
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <span className="text-gray-300 dark:text-slate-600 font-bold">/</span>
+                <select value={activePageId || ""} onChange={handlePageChange} className="bg-transparent font-black text-xs outline-none cursor-pointer text-red-600 dark:text-red-500 px-2 uppercase tracking-wide">
+                  {activeProject.pages.map(p => <option key={p.id} value={p.id}>{p.name} {p.isHome ? '(Główna)' : ''}</option>)}
+                  <option value="NEW_PAGE" className="bg-red-50 text-red-700">+ Nowa Podstrona...</option>
+                </select>
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <button onClick={toggleTheme} className="p-2 text-gray-500 hover:text-red-600 transition-colors">{darkMode ? "☀️" : "🌙"}</button>
-            {currentView === "wizard" && (
-              <>
-                <button onClick={resetSession} className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zresetuj Sesję</button>
-                <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="bg-gray-100 dark:bg-slate-800 border-none rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-red-500 w-48 dark:text-white" />
-              </>
-            )}
-            <button onClick={() => signOut()} className="bg-transparent border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-500 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition ml-4">Wyloguj</button>
+            <button onClick={saveCurrentWorkToProject} className="bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl font-bold text-[10px] uppercase tracking-widest transition">Zapisz Stan</button>
+            <button onClick={downloadFullProject} className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition shadow-lg shadow-green-500/20">Wydaj Projekt</button>
           </div>
         </nav>
 
-        {currentView === "wizard" && (
+        {currentView === "wizard" && activePage && (
           <>
             <div className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-8 py-6 flex justify-between items-center shrink-0">
               <div className="flex space-x-4 w-full max-w-5xl">
@@ -408,17 +482,19 @@ export default function Home() {
             <div className="flex-1 flex overflow-hidden">
               <div className="w-[450px] bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col shrink-0 relative">
                 
-                <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-800">
-                  <h3 className="font-black uppercase tracking-tighter text-lg dark:text-white">Asystent AI</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Konwersacja i Generowanie</p>
+                <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center">
+                  <div>
+                    <h3 className="font-black uppercase tracking-tighter text-lg dark:text-white truncate max-w-[200px]">{activePage.name}</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Plik: {activePage.fileName}</p>
+                  </div>
+                  {activePage.isHome && <span className="bg-red-100 text-red-700 text-[9px] font-black uppercase px-2 py-1 rounded">Baza Globalna</span>}
                 </div>
                 
                 <div className="flex-1 p-6 overflow-y-auto flex flex-col">
                   {!aiResponseText && (
                     <div className="space-y-2 mb-6 text-[11px] font-bold uppercase tracking-tight text-gray-500">
-                      {activeStep === 1 && ["Ustal strukturę strony", "Dopracowuj ją w tym oknie", "aż będziesz zadowolony."].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                      {activeStep === 2 && ["Wgraj zdjęcia poniżej.", "Zbuduj wizualny layout.", "Zmieniaj kolory, marginesy."].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                      {activeStep === 3 && ["Analiza gotowej strony pod SEO", "Dodawanie JSON-LD i tagów ALT", "Asystent oceni wpływ zmian na design"].map(d => <div key={d} className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 rounded-xl border border-red-100 dark:border-red-800/50">{d}</div>)}
+                      <div className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">Edytujesz podstronę: {activePage.name}</div>
+                      {!activePage.isHome && <div className="p-3 bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-100 dark:border-slate-700">AI pobierze Style, Top i Bottom z Głównej!</div>}
                     </div>
                   )}
                   
@@ -459,15 +535,9 @@ export default function Home() {
 
                 <div className="p-6 pt-2 border-t border-gray-100 dark:border-slate-800">
                   <div className="flex gap-2 mb-4">
-                    <button onClick={applyAutopilot} className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition text-[10px] uppercase tracking-widest shadow-sm">Autopilot</button>
+                    <button onClick={applyAutopilot} className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition text-[10px] uppercase tracking-widest shadow-sm">Autopilot dla: {activePage.name}</button>
                   </div>
-                  <textarea 
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white shadow-inner" 
-                    rows={3} 
-                    placeholder="Rozmawiaj z asystentem lub wydaj polecenie optymalizacji..."
-                  ></textarea>
+                  <textarea value={input} onChange={(e) => setInput(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white shadow-inner" rows={3} placeholder={`Rozmawiaj z AI na temat ${activePage.name}...`}></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30'}`}>
                     {isLoading ? "Przetwarzanie..." : "Wyślij"}
                   </button>
@@ -496,7 +566,7 @@ export default function Home() {
                   {activeStep === 1 && (
                     Object.keys(documents).length === 0 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Brak danych. Kliknij Autopilota, a następnie modyfikuj stukturę z asystentem.</p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Brak danych dla: {activePage.name}</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -518,18 +588,14 @@ export default function Home() {
                   {(activeStep === 2 || activeStep === 3) && (
                     !htmlContent ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Brak kodu wizualnego. Poproś asystenta o wygenerowanie HTML.</p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Wygeneruj kod dla {activePage.name}.</p>
                       </div>
                     ) : (
                       <div className="space-y-8">
                         <div className="flex justify-center w-full">
                           {showCode ? (
                              <div className="w-full bg-slate-900 rounded-[2rem] p-6 shadow-2xl border border-slate-700">
-                                <textarea 
-                                   readOnly 
-                                   className="w-full h-[700px] bg-transparent text-emerald-400 font-mono text-xs outline-none"
-                                   value={htmlContent}
-                                />
+                                <textarea readOnly className="w-full h-[700px] bg-transparent text-emerald-400 font-mono text-xs outline-none" value={htmlContent} />
                              </div>
                           ) : (
                              <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-white shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-200 relative">
@@ -543,27 +609,13 @@ export default function Home() {
                                      <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
                                    </head>
                                    <body>
-                                     ${getRenderedHtml()}
+                                     ${getRenderedHtml(htmlContent, images)}
                                      <script>lucide.createIcons();</script>
                                    </body>
                                  </html>
                                `} />
                              </div>
                           )}
-                        </div>
-                        
-                        <div className="bg-gradient-to-r from-gray-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-3xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between border border-gray-800 dark:border-slate-700">
-                           <div className="mb-6 md:mb-0">
-                             <h4 className="text-white font-black text-xl uppercase tracking-tight">Gotowy do zapisania?</h4>
-                             <p className="text-gray-400 text-sm mt-1">Pobierz plik. Możesz wyeksportować projekt zarówno w Etapie 2 (surowy kod), jak i 3 (z SEO).</p>
-                           </div>
-                           <div className="flex gap-4">
-                             <button onClick={saveProject} className="bg-gray-100 hover:bg-white text-gray-900 px-6 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-sm">Do Archiwum</button>
-                             <button onClick={downloadHtmlPackage} className="bg-green-500 hover:bg-green-400 text-gray-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:shadow-[0_0_40px_rgba(34,197,94,0.5)] transition-all flex items-center">
-                               <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                               Eksportuj Plik
-                             </button>
-                           </div>
                         </div>
                       </div>
                     )

@@ -8,7 +8,6 @@ export async function POST(req: Request) {
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     let searchContext = "";
 
-    // TAVILY
     if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10 && !lastUserMessage.includes("--- WIEDZA")) {
         try {
             const searchRes = await fetch('https://api.tavily.com/search', {
@@ -34,40 +33,36 @@ export async function POST(req: Request) {
 
     if (step === 1) {
       systemContent = `Jesteś WYBITNYM STRATEGIEM I ARCHITEKTEM INFORMACJI.
-      Projektuj w logice sprzedażowej (hero, problem, rozwiązanie, dowody, CTA). Użytkownik będzie prosił Cię o iteracyjne poprawki w strukturze (np. dodaj sekcję).
+      Zwróć uwagę na kontekst: użytkownik może tworzyć STRONĘ GŁÓWNĄ lub PODSTRONĘ (np. "O nas", "Cennik").
+      Projektuj w logice sprzedażowej (hero, problem, rozwiązanie, dowody, CTA).
       Jeśli użytkownik ZADAJE PYTANIE, odpowiedz zwykłym tekstem.
       Jeśli generujesz dokumenty, użyj: <DOC_1>, <DOC_9>, <DOC_10>, <DOC_12>.`;
     } 
     else if (step === 2) {
-      // DAWNIEJ ETAP 3 (VISUAL)
       systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM.
-      Jeśli użytkownik ZADAJE PYTANIE LUB PROSI O ZMIANĘ (np. kolorystyki), odpowiedz tekstem i zwróć zaktualizowany kod.
+      Jeśli użytkownik ZADAJE PYTANIE, odpowiedz tekstem.
       
       ZWRÓĆ PEŁNY KOD W TAGACH <HTML>...</HTML>.
       KRYTYCZNE ZASADY KODOWANIA:
-      1. LOGIKA: Nawigacja, Hero, Oferta, Opinie, FAQ, CTA, Footer.
-      2. DESIGN TAILWIND + CSS: Używaj Tailwind v4. Dodaj tag <style> w <head> z luksusowymi zmiennymi CSS i gradientami.
-      3. ZDJĘCIA (ASSETY): Zastępuj placeholdery konkretnymi nazwami plików z WebP, jeśli użytkownik Ci je poda.
-      4. PRAWDZIWE DANE: Używaj tekstów ze strategii (DOC_10).`;
+      1. DZIEDZICZENIE STYLÓW (DESIGN SYSTEM): 
+         - Jeśli kodujesz PODSTRONĘ, w kontekście otrzymasz kod Strony Głównej. 
+         - TWOIM BEZWZGLĘDNYM OBOWIĄZKIEM jest utrzymanie 100% spójności wizualnej z Głęwną.
+         - Skopiuj <head> ze stylami CSS, <header>, <nav> i <footer> DOKŁADNIE tak, jak wyglądają.
+         - W nowym contencie podstrony sklonuj estetykę: użyj tych samych kolorów tła, identycznych klas dla przycisków (np. te same gradienty, paddingi, zaokrąglenia), tych samych cieni (shadow) i fontów. Strona musi stanowić jednorodną całość z resztą serwisu.
+      2. MENU: Zaktualizuj atrybuty 'href' w <nav> oraz stopce na bazie Mapy Stron z kontekstu.
+      3. DESIGN: Używaj Tailwind v4. Pamiętaj o zachowaniu asymetrii i nowoczesnego układu (Bento grid dla ofert).
+      4. ZDJĘCIA: Zastępuj placeholdery nazwami plików z załączników WebP.`;
     }
     else if (step === 3) {
-      // DAWNIEJ ETAP 2 (SEO) - TERAZ HYBRYDA SEO + HTML
       systemContent = `Jesteś WYBITNYM INŻYNIEREM SEO I OPTYMALIZACJI.
-      Użytkownik prześle Ci gotowy kod HTML. Twoim zadaniem jest nasycenie go optymalizacją pod AI i pozycjonowanie.
-      
-      JAK ODPOWIADAĆ (BARDZO WAŻNE):
-      1. Zawsze zacznij od naturalnego tekstu (poza tagami HTML), w którym ocenisz sugestie użytkownika, doradzisz (np. "Tak, ten tekst sprawdzi się lepiej pod kątem intencji wyszukiwania") i opiszesz, co dodałeś do kodu.
+      Otrzymasz gotowy kod HTML. Nasyć go optymalizacją pod AI i SEO.
+      1. Zawsze zacznij od naturalnego tekstu (poza tagami), opisując optymalizacje.
       2. ZWRÓĆ ZAKTUALIZOWANY KOD W TAGACH <HTML>...</HTML>.
-      
-      CO MUSISZ ZROBIĆ W KODZIE HTML:
-      - Dodaj zaawansowany kod JSON-LD (Schema.org dla LocalBusiness/School) wewnątrz tagu <head>.
-      - Uzupełnij atrybuty 'alt' w tagach <img> i zoptymalizuj teksty nagłówków (H1, H2) pod kątem słów kluczowych.
-      - Dodaj meta title i meta description, jeśli ich brakuje.
-      Zachowaj istniejący design i klasy Tailwind – nie psuj wyglądu!`;
+      3. Wdróż JSON-LD, optymalizuj nagłówki (H1, H2) i dodaj atrybuty alt. Nie zmieniaj wizualnych klas Tailwind!`;
     } 
     else if (step === 4) {
-      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Zmapuj dostarczony HTML pod system CMS. 
-      Odpowiadaj tekstem na pytania lub generuj tagi: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
+      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Zmapuj HTML pod CMS. 
+      Użyj tagów: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
     }
 
     const messagesToSend = [...messages];
@@ -83,7 +78,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o', 
-        temperature: 0.4, 
+        temperature: 0.3, // Zmniejszyłem lekko temperaturę, aby ściślej trzymał się wzorców CSS
         max_tokens: 4096, 
         messages: [
           { role: 'system', content: systemContent },
