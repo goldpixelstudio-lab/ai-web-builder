@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     let searchContext = "";
 
     // Wyszukiwanie tylko w Etapie 1
-    if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10 && !lastUserMessage.includes("--- SKOPIOWANA WIEDZA")) {
+    if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10 && !lastUserMessage.includes("--- WIEDZA")) {
         try {
             const searchRes = await fetch('https://api.tavily.com/search', {
                 method: 'POST',
@@ -33,39 +33,38 @@ export async function POST(req: Request) {
     }
 
     if (step === 1) {
-      systemContent = `Jesteś WYBITNYM ARCHITEKTEM INFORMACJI. Twoim zadaniem jest dynamiczne zaprojektowanie optymalnej struktury dla danego biznesu. Generujesz 4 dokumenty XML:
-      <DOC_1> Strategia i architektura (Zaprojektuj układ strony wg własnego, profesjonalnego uznania - tak, aby konwertował). </DOC_1>
-      <DOC_9> Handoff copywriterski (Konkretne wezwania do akcji, wartości merytoryczne). </DOC_9>
-      <DOC_10> Wersja redakcyjna (Czyste, gotowe teksty na stronę oparte o prawdziwe dane z wyszukiwania. Zero zapychaczy). </DOC_10>
-      <DOC_12> Asset plan. </DOC_12>
-      Otaczaj odpowiedź tagami XML. Brak wstępu.`;
+      systemContent = `Jesteś WYBITNYM ARCHITEKTEM INFORMACJI. 
+      Jeśli użytkownik zadaje pytanie, odpowiedz zwykłym tekstem.
+      Jeśli generujesz dokumenty, użyj tagów XML:
+      <DOC_1> Strategia i architektura (Zaprojektuj układ strony wg własnego uznania). </DOC_1>
+      <DOC_9> Handoff copywriterski. </DOC_9>
+      <DOC_10> Wersja redakcyjna (Czyste teksty z informacjami np. Teddy Eddie). </DOC_10>
+      <DOC_12> Asset plan. </DOC_12>`;
     } 
     else if (step === 2) {
-      systemContent = `Jesteś INŻYNIEREM DANYCH SEO. ZAKAZ PISANIA JAKICHKOLWIEK ZDAŃ BĘDĄCYCH PORADAMI LUB TEORIĄ.
-      
-      Zwróć JEDYNIE tag <DOC_11>, a w nim:
-      1. MAPĘ SŁÓW KLUCZOWYCH (Topical Map): Wypisz w punktach klastry tematyczne i precyzyjne frazy (np. "angielski dla dzieci radomsko", "egzamin 8 klasisty radomsko"). Żadnych rad jak ich szukać – to Ty masz je podać.
-      2. Meta Title i Meta Description.
-      3. Surowy, rozbudowany kod JSON-LD (Organization, LocalBusiness) z PRAWDZIWYMI DANYMI.
-      
-      ZABRONIONE JEST PISANIE ESEJÓW O SEO.`;
+      systemContent = `Jesteś INŻYNIEREM DANYCH SEO.
+      ZASADA 1: Jeśli użytkownik zadaje pytanie (np. "Gdzie to wkleić?"), odpowiedz mu naturalnie ZWYKŁYM TEKSTEM (bez tagów).
+      ZASADA 2: Jeśli użytkownik prosi o mapę SEO, ZAKAZUJĘ CI PISANIA PORAD. Masz zwrócić TYLKO tag <DOC_11>, a w nim:
+      - Ultra profesjonalną Topical Map (klastry tematyczne, frazy long-tail i wolumeny w formie tabeli/listy).
+      - Gotowy kod JSON-LD (Organization, LocalBusiness) z prawdziwymi danymi.
+      - Meta Title i Meta Description.
+      Zero lania wody. Zero "Wprowadzeń".`;
     }
     else if (step === 3) {
-      systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM. Wygeneruj KOMPLETNY plik HTML + Tailwind CSS v4.
-      
-      MASZ PEŁNĄ SWOBODĘ ARCHITEKTONICZNĄ, ale musisz spełnić najwyższe rygory techniczne:
-      1. UŻYJ PRAWDZIWYCH DANYCH: Zintegruj teksty z DOC_10 i strukturę z DOC_1. Zakaz używania "Lorem Ipsum" czy generycznych nagłówków.
-      2. TECHNIKALIA: Zastosuj semantyczne tagi (header, nav, main, section, footer), ukryte linki 'skip-link' dla a11y.
-      3. DESIGN PREMIUM: Użyj płynnej typografii (np. text-[clamp(2rem,5vw,4rem)]), zaawansowanych layoutów (Grid, Flexbox, asymetria), subtelnych gradientów i glassmorphismu. Projekt ma wyglądać jak nagrodzony na Awwwards.
-      
-      Zwróć TYLKO I WYŁĄCZNIE kod zaczynający się od <!DOCTYPE html> i kończący na </html>. JSON-LD ma znaleźć się wewnątrz <head>. Brak znaczników Markdown. Brak komentarzy tłumaczących kod.`;
+      systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM.
+      ZASADA 1: Jeśli użytkownik zadaje pytanie, odpowiedz mu ZWYKŁYM TEKSTEM.
+      ZASADA 2: Jeśli modyfikujesz lub tworzysz kod, musisz zwrócić CAŁY KOD w tagach <HTML>...</HTML>.
+
+      RYGORY TECHNICZNE DLA KODU HTML:
+      1. STYLE CSS: W sekcji <head> MUSISZ dodać obszerny tag <style>. Zdefiniuj w nim zmienne :root (np. kolory brandowe, granat #1a2a6c, złoto #f7b731), dodaj luksusowe radial-gradients w tle (radial-gradient(circle at top left...)) oraz efekty hover. Nie polegaj tylko na samym Tailwindzie.
+      2. STRUKTURA: Pełny dokument <!DOCTYPE html>, z <nav>, <header>, wieloma <section> i <footer>.
+      3. DANE: Używaj tekstów ze strategii (DOC_10). Zero "Lorem Ipsum" czy "Usługa 1".
+      Wygeneruj ultra profesjonalny kod.`;
     } 
     else if (step === 4) {
-      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. Zbuduj mapowanie dla wygenerowanego wcześniej kodu HTML.
-      <DOC_2> Architektura SP Page Builder. </DOC_2>
-      <DOC_3> Tabela wdrożeniowa. </DOC_3>
-      <DOC_7> Master Handoff. </DOC_7>
-      <DOC_13> QA / Audit checklist. </DOC_13>`;
+      systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. 
+      Jeśli użytkownik zadaje pytanie, odpowiedz tekstem.
+      Jeśli mapujesz projekt, użyj tagów: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
     }
 
     const messagesToSend = [...messages];
@@ -81,7 +80,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o', 
-        temperature: 0.3, // Optymalny balans: chłodna kalkulacja dla SEO, ale lekka kreatywność dla HTML i tekstów
+        temperature: 0.3, 
         max_tokens: 4096, 
         messages: [
           { role: 'system', content: systemContent },

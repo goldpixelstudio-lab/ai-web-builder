@@ -23,6 +23,9 @@ export default function Home() {
   
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  
+  // NOWOŚĆ: Okno konwersacyjne dla odpowiedzi AI
+  const [aiResponseText, setAiResponseText] = useState<string | null>(null);
 
   const viewWidths = {
     desktop: "100%",
@@ -30,7 +33,6 @@ export default function Home() {
     mobile: "390px",
   };
 
-  // ŁADOWANIE ZAPISANEGO STANU (PERSISTENT STATE)
   useEffect(() => {
     const savedProjects = localStorage.getItem("profeProjects");
     if (savedProjects) setProjects(JSON.parse(savedProjects));
@@ -52,10 +54,11 @@ export default function Home() {
   };
 
   const resetSession = () => {
-    if (confirm("Czy na pewno chcesz zresetować bieżącą sesję roboczą? Niezapisane zmiany zostaną usunięte.")) {
+    if (confirm("Czy na pewno chcesz zresetować bieżącą sesję roboczą?")) {
         setDocuments({});
         setHtmlContent(null);
         setInput("");
+        setAiResponseText(null);
         setActiveStep(1);
         localStorage.removeItem("profeActiveDocs");
         localStorage.removeItem("profeActiveHtml");
@@ -72,52 +75,52 @@ export default function Home() {
     const updated = [...projects, newProject];
     setProjects(updated);
     localStorage.setItem("profeProjects", JSON.stringify(updated));
-    alert("Projekt zapisany pomyślnie w Archiwum!");
-  };
-
-  const deleteProject = (id: string) => {
-    const updated = projects.filter(p => p.id !== id);
-    setProjects(updated);
-    localStorage.setItem("profeProjects", JSON.stringify(updated));
+    alert("Projekt zapisany w Archiwum!");
   };
 
   const applyAutopilot = () => {
     let basePrompt = "";
     if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla szkoły językowej "Profe Studio Radomsko". Wyszukaj ich w internecie.`;
-    else if (activeStep === 2) basePrompt = `Wygeneruj ultra profesjonalną mapę słów i fraz kluczowych (Topical Map) oraz kod JSON-LD oparty o zgromadzone dane. Żadnych porad!`;
-    else if (activeStep === 3) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny, luksusowy kod HTML + Tailwind. Sam zadecyduj o najlepszej architekturze na bazie Strategii. Użyj prawdziwych tekstów. Zero placeholdrów.`;
+    else if (activeStep === 2) basePrompt = `Wygeneruj ULTRA PROFESJONALNĄ mapę słów (Topical Map) oraz kod JSON-LD na bazie zgromadzonych danych. Żadnych porad.`;
+    else if (activeStep === 3) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny, luksusowy kod HTML. Dodaj potężne style CSS w sekcji head. Użyj prawdziwych tekstów ze Strategii.`;
     else if (activeStep === 4) basePrompt = `Zmapuj projekt na Joomla i SP Page Builder.`;
 
-    let projectContext = "";
-    if (activeStep > 1 && Object.keys(documents).length > 0) {
-      projectContext = "\n\n--- SKOPIOWANA WIEDZA O FIRMIE Z ETAPU 1 ---\n";
-      if (documents.doc1) projectContext += `STRATEGIA:\n${documents.doc1.substring(0, 800)}...\n\n`;
-      if (documents.doc10) projectContext += `TEKSTY DO UŻYCIA (BARDZO WAŻNE):\n${documents.doc10}\n\n`;
-      if (documents.doc11) projectContext += `SEO:\n${documents.doc11.substring(0, 800)}...\n`;
-      projectContext += "----------------------------------------------\n";
-    } else if (activeStep > 1) {
-      projectContext = "\n\n⚠️ UWAGA: Brak danych z Etapu 1 w pamięci podręcznej. Najpierw wygeneruj Etap 1!";
-    }
-
-    setInput(basePrompt + projectContext);
+    setInput(basePrompt);
   };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+    setIsLoading(true);
+    setAiResponseText(null); // Czyścimy poprzednią odpowiedź
+
+    // DOKLEJANIE KONTEKSTU (BIEŻĄCEGO STANU)
+    let projectContext = "";
     
-    if (activeStep > 1 && input.includes("Brak danych z Etapu 1")) {
-      alert("Najpierw musisz wygenerować Strategię w Etapie 1!");
-      return;
+    // Jeśli mamy dane z Etapu 1 (Wiedza o firmie)
+    if (activeStep > 1 && Object.keys(documents).length > 0) {
+      projectContext += "\n\n--- WIEDZA BAZOWA Z ETAPU 1 ---\n";
+      if (documents.doc1) projectContext += `STRATEGIA:\n${documents.doc1.substring(0, 800)}...\n\n`;
+      if (documents.doc10) projectContext += `TEKSTY DO UŻYCIA:\n${documents.doc10}\n`;
     }
 
-    setIsLoading(true);
+    // ITERACJA: Jeśli jesteśmy w E2, podajemy obecne SEO, by AI mogło je modyfikować
+    if (activeStep === 2 && documents.doc11) {
+      projectContext += `\n--- OBECNY DOKUMENT SEO (Do modyfikacji lub odniesienia) ---\n${documents.doc11}\n`;
+    }
+    
+    // ITERACJA: Jeśli jesteśmy w E3, podajemy obecny HTML
+    if (activeStep === 3 && htmlContent) {
+      projectContext += `\n--- OBECNY KOD HTML STRONY (Zmodyfikuj go zgodnie z prośbą) ---\n${htmlContent}\n`;
+    }
+
+    const payloadMessage = input + projectContext;
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          messages: [{ role: "user", content: input }],
+          messages: [{ role: "user", content: payloadMessage }],
           step: activeStep 
         }),
       });
@@ -125,6 +128,7 @@ export default function Home() {
       
       if (data.reply) {
         let aiText = data.reply;
+        let isCodeGenerated = false;
         
         const extractDoc = (tag: string) => {
           const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i");
@@ -132,36 +136,35 @@ export default function Home() {
           return match ? match[1].trim() : null;
         };
 
+        // ETAP 1
         if (activeStep === 1) {
           const newDocs: Record<string, string> = { ...documents };
-          let d1 = extractDoc("DOC_1");
-          let d9 = extractDoc("DOC_9");
-          let d10 = extractDoc("DOC_10");
-          let d12 = extractDoc("DOC_12");
+          let d1 = extractDoc("DOC_1"); let d9 = extractDoc("DOC_9"); let d10 = extractDoc("DOC_10"); let d12 = extractDoc("DOC_12");
           
-          if (!d1 && !d10) { d1 = aiText; d10 = aiText; }
-
-          if (d1) newDocs["doc1"] = d1;
-          if (d9) newDocs["doc9"] = d9;
-          if (d10) newDocs["doc10"] = d10;
-          if (d12) newDocs["doc12"] = d12;
-          
-          setDocuments(newDocs);
-          localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
+          if (d1 || d10) {
+            if (d1) newDocs["doc1"] = d1;
+            if (d9) newDocs["doc9"] = d9;
+            if (d10) newDocs["doc10"] = d10;
+            if (d12) newDocs["doc12"] = d12;
+            setDocuments(newDocs);
+            localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
+            isCodeGenerated = true;
+          }
         }
 
+        // ETAP 2
         if (activeStep === 2) {
           let doc11 = extractDoc("DOC_11");
-          if (!doc11) doc11 = aiText; 
-          
           if (doc11) {
             const newDocs: Record<string, string> = { ...documents };
             newDocs["doc11"] = doc11;
             setDocuments(newDocs);
             localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
+            isCodeGenerated = true;
           }
         }
 
+        // ETAP 3
         if (activeStep === 3) {
           let html = extractDoc("HTML");
           if (!html) {
@@ -171,27 +174,35 @@ export default function Home() {
           if (!html) {
              const docMatch = aiText.match(/(<!DOCTYPE html>[\s\S]*<\/html>)/i);
              if (docMatch) html = docMatch[1];
-             else html = aiText;
           }
 
           if (html) {
             let cleanHtml = html.replace(/```html/gi, "").replace(/```/g, "").trim();
             setHtmlContent(cleanHtml);
             localStorage.setItem("profeActiveHtml", cleanHtml);
+            isCodeGenerated = true;
           }
         }
 
+        // ETAP 4
         if (activeStep === 4) {
           const newDocs: Record<string, string> = { ...documents };
-          const doc2 = extractDoc("DOC_2"); if (doc2) newDocs["doc2"] = doc2;
+          const doc2 = extractDoc("DOC_2"); if (doc2) { newDocs["doc2"] = doc2; isCodeGenerated = true; }
           const doc3 = extractDoc("DOC_3"); if (doc3) newDocs["doc3"] = doc3;
           const doc7 = extractDoc("DOC_7"); if (doc7) newDocs["doc7"] = doc7;
           const doc13 = extractDoc("DOC_13"); if (doc13) newDocs["doc13"] = doc13;
-          setDocuments(newDocs);
-          localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
+          if(isCodeGenerated) {
+            setDocuments(newDocs);
+            localStorage.setItem("profeActiveDocs", JSON.stringify(newDocs));
+          }
         }
 
-        setTimeout(() => setInput(""), 3000);
+        // Jeśli AI NIE wygenerowało tagów kodu, to znaczy, że odpowiedziało na pytanie!
+        if (!isCodeGenerated) {
+           setAiResponseText(aiText);
+        }
+
+        setTimeout(() => setInput(""), 1000);
       }
     } catch (e) {
       console.error(e);
@@ -203,7 +214,7 @@ export default function Home() {
 
   const downloadHtmlPackage = () => {
     if (!htmlContent) {
-      alert("⚠️ Brak wygenerowanego kodu wizualnego (Etap 3). Nie ma czego eksportować.");
+      alert("⚠️ Brak wygenerowanego kodu wizualnego.");
       return;
     }
 
@@ -216,7 +227,6 @@ export default function Home() {
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; scroll-behavior: smooth; }</style>
 </head>
 <body class="bg-gray-50 text-slate-900">
     ${htmlContent}
@@ -339,26 +349,39 @@ export default function Home() {
             <div className="flex-1 flex overflow-hidden">
               <div className="w-[450px] bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 flex flex-col shrink-0">
                 <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-800">
-                  <h3 className="font-black uppercase tracking-tighter text-lg dark:text-white">Expert System V12</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Status: Aktywny</p>
+                  <h3 className="font-black uppercase tracking-tighter text-lg dark:text-white">Expert System V13</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Interaktywny Asystent</p>
                 </div>
-                <div className="flex-1 p-6 overflow-y-auto space-y-2 text-[11px] font-bold uppercase tracking-tight text-gray-500">
-                  {activeStep === 1 && ["Analiza Biznesowa", "Projekt Architektury", "Copywriting Premium"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                  {activeStep === 2 && ["Analiza Fraz Kluczowych (Topical Map)", "Generowanie JSON-LD", "Optymalizacja Meta"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
-                  {activeStep === 3 && ["Samodzielne Projektowanie Layoutu", "Generowanie kodu HTML", "Aplikacja CSS Tailwind"].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
-                  {activeStep === 4 && ["Mapowanie SP Page Builder", "Przygotowanie paczki Joomla", "Wdrożenie"].map(d => <div key={d} className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 rounded-xl border border-blue-100 dark:border-blue-800/50">{d}</div>)}
+                
+                <div className="flex-1 p-6 overflow-y-auto flex flex-col">
+                  {/* Instrukcje Etapu */}
+                  <div className="space-y-2 mb-6 text-[11px] font-bold uppercase tracking-tight text-gray-500">
+                    {activeStep === 1 && ["Analiza Biznesowa", "Projekt Architektury", "Copywriting Premium"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
+                    {activeStep === 2 && ["Ultra Topical Map", "Generowanie JSON-LD", "Optymalizacja Meta"].map(d => <div key={d} className="p-3 bg-gray-50 dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">{d}</div>)}
+                    {activeStep === 3 && ["Generowanie kodu HTML", "Zaawansowane Style CSS", "Responsywność i A11y"].map(d => <div key={d} className="p-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 rounded-xl border border-indigo-100 dark:border-indigo-800/50">{d}</div>)}
+                  </div>
+                  
+                  {/* Dymek z konwersacyjną odpowiedzią AI */}
+                  {aiResponseText && (
+                    <div className="mt-auto bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-4 rounded-2xl mb-4 animate-fade-in">
+                       <p className="text-xs font-medium text-blue-900 dark:text-blue-100 whitespace-pre-wrap">{aiResponseText}</p>
+                    </div>
+                  )}
                 </div>
+
                 <div className="p-6 border-t border-gray-100 dark:border-slate-800">
-                  <button onClick={applyAutopilot} className="w-full mb-4 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition uppercase tracking-widest text-[10px]">1. Załaduj Kontekst z Pamięci</button>
+                  <div className="flex gap-2 mb-4">
+                    <button onClick={applyAutopilot} className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition text-[10px] uppercase tracking-widest">Wklej Komendę Głównego Generowania</button>
+                  </div>
                   <textarea 
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-4 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" 
-                    rows={6} 
-                    placeholder="Wprowadź polecenie..."
+                    className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-xs font-medium focus:ring-2 focus:ring-blue-500 outline-none dark:text-white" 
+                    rows={4} 
+                    placeholder="Wydaj polecenie (np. 'Zmień kolor tła na czarny' lub 'Jak wdrożyć ten kod?')..."
                   ></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20'}`}>
-                    {isLoading ? "Przetwarzanie..." : "2. Generuj Wynik"}
+                    {isLoading ? "Przetwarzanie..." : "Wyślij"}
                   </button>
                 </div>
               </div>
@@ -378,16 +401,16 @@ export default function Home() {
                   {activeStep === 1 && (
                     Object.keys(documents).length === 0 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Brak danych w pamięci sesji.<br/>Załaduj kontekst (1) i generuj (2).</p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Załaduj komendę z lewej i wygeneruj bazę.</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
                         {["doc1", "doc9", "doc10", "doc12"].map(key => documents[key] && (
                           <div key={key} className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-gray-100 dark:border-slate-800 p-8">
                             <h3 className="text-xl font-black uppercase text-blue-600 mb-4 border-b border-gray-100 dark:border-slate-800 pb-4">
-                              {key === "doc1" && "Architektura i Strategia Konwersji"}
+                              {key === "doc1" && "Architektura i Strategia"}
                               {key === "doc9" && "Handoff Copywriterski"}
-                              {key === "doc10" && "Wsad Tekstowy"}
+                              {key === "doc10" && "Wsad Tekstowy (Twarde dane)"}
                               {key === "doc12" && "Plan Mediów"}
                             </h3>
                             <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{documents[key]}</div>
@@ -400,7 +423,7 @@ export default function Home() {
                   {activeStep === 2 && (
                     !documents.doc11 ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Załaduj kontekst z pamięci i generuj mapę SEO.</p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Wpisz komendę, aby wygenerować mapę SEO, lub zadaj pytanie.</p>
                       </div>
                     ) : (
                       <div className="space-y-6">
@@ -415,12 +438,12 @@ export default function Home() {
                   {activeStep === 3 && (
                     !htmlContent ? (
                       <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Załaduj kontekst z pamięci i pozwól AI wygenerować kod.</p>
+                        <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Wpisz komendę, aby AI zaprojektowało HTML z luksusowym CSS.</p>
                       </div>
                     ) : (
                       <div className="space-y-8">
                         <div className="flex justify-center w-full">
-                          <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-gray-50 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-200 relative">
+                          <div style={{ width: viewWidths[viewMode] }} className="h-[750px] bg-white shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-500 rounded-[2rem] overflow-hidden border border-gray-200 relative">
                             <iframe className="w-full h-full border-none" sandbox="allow-scripts allow-same-origin" srcDoc={`
                               <!DOCTYPE html>
                               <html lang="pl" class="antialiased">
@@ -429,9 +452,8 @@ export default function Home() {
                                   <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
                                   <script src="https://unpkg.com/lucide@latest"></script>
                                   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
-                                  <style>body { font-family: 'Montserrat', sans-serif; overflow-x: hidden; scroll-behavior: smooth; }</style>
                                 </head>
-                                <body class="bg-gray-50 text-slate-900">
+                                <body>
                                   ${htmlContent}
                                   <script>lucide.createIcons();</script>
                                 </body>
@@ -443,7 +465,7 @@ export default function Home() {
                         <div className="bg-gradient-to-r from-gray-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-3xl shadow-2xl p-8 flex flex-col md:flex-row items-center justify-between border border-gray-800 dark:border-slate-700">
                            <div className="mb-6 md:mb-0">
                              <h4 className="text-white font-black text-xl uppercase tracking-tight">Gotowy do wdrożenia?</h4>
-                             <p className="text-gray-400 text-sm mt-1">Pobierz wygenerowany wyżej kod jako autonomiczną paczkę HTML gotową do wrzucenia na serwer.</p>
+                             <p className="text-gray-400 text-sm mt-1">Pobierz kod. Jeśli chcesz coś zmienić (np. "Dodaj sekcję"), wpisz to po lewej stronie i wyślij!</p>
                            </div>
                            <button onClick={downloadHtmlPackage} className="bg-green-500 hover:bg-green-400 text-gray-900 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(34,197,94,0.3)] hover:shadow-[0_0_40px_rgba(34,197,94,0.5)] transition-all flex items-center shrink-0">
                              <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -458,7 +480,7 @@ export default function Home() {
                     <div className="space-y-6">
                       {Object.keys(documents).filter(k => ["doc2", "doc3", "doc7", "doc13"].includes(k)).length === 0 ? (
                         <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                          <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Załaduj kontekst z pamięci i zmapuj projekt pod SP Page Builder.</p>
+                          <p className="text-gray-400 dark:text-slate-500 font-medium text-lg uppercase tracking-widest text-center">Zmapuj projekt pod SP Page Builder.</p>
                         </div>
                       ) : (
                         <>
