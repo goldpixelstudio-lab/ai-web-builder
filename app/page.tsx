@@ -23,8 +23,8 @@ interface Project {
   id: string;
   name: string;
   date: string;
-  createdAt?: string; // Nowe pola czasu
-  updatedAt?: string; // Nowe pola czasu
+  createdAt?: string;
+  updatedAt?: string;
   pages: PageData[];
 }
 
@@ -54,7 +54,7 @@ export default function Home() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
-  const importProjectRef = useRef<HTMLInputElement>(null); // Referencja dla importu JSON
+  const importProjectRef = useRef<HTMLInputElement>(null); 
 
   const viewWidths = { desktop: "100%", tablet: "768px", mobile: "390px" };
 
@@ -80,7 +80,7 @@ export default function Home() {
             if (proj.id !== activeProjectId) return proj;
             return {
                 ...proj,
-                updatedAt: getFormattedDate(), // Zaktualizowana data modyfikacji
+                updatedAt: getFormattedDate(),
                 pages: proj.pages.map(page => {
                     if (page.id !== activePageId) return page;
                     return { ...page, documents, htmlContent, images, refImages };
@@ -111,7 +111,6 @@ export default function Home() {
     const name = prompt("Podaj nazwę nowego projektu:");
     if (!name) return;
     
-    // Zabezpieczenie przed dublowaniem nazw
     if (projects.some(p => p.name.toLowerCase() === name.toLowerCase())) {
         alert("Projekt o takiej nazwie już istnieje. Wybierz inną.");
         return;
@@ -192,7 +191,6 @@ export default function Home() {
     }
   };
 
-  // --- IMPORT / EXPORT PROJEKTÓW (JSON) ---
   const exportProjectJson = (project: Project) => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project));
     const a = document.createElement("a");
@@ -222,7 +220,7 @@ export default function Home() {
             }
             
             importedProject.name = finalName;
-            importedProject.id = Date.now().toString(); // Reset ID dla pewności braku kolizji
+            importedProject.id = Date.now().toString();
             importedProject.createdAt = getFormattedDate();
             importedProject.updatedAt = getFormattedDate();
             
@@ -314,7 +312,6 @@ export default function Home() {
     e.target.value = "";
   };
 
-  // DODANA FUNKCJA USUWANIA ZDJĘĆ
   const removeImage = (nameToRemove: string) => {
     setImages(prev => prev.filter(img => img.name !== nameToRemove));
     setRefImages(prev => prev.filter(img => img.name !== nameToRemove));
@@ -337,8 +334,8 @@ export default function Home() {
     if (!activeProject || !activePage) return;
     let basePrompt = "";
     if (activeStep === 1) basePrompt = `Zbuduj optymalną, nowoczesną strategię dla: ${activePage.name}.`;
-    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny kod HTML dla: ${activePage.name}. Jeśli załączyłem zdjęcia w sekcji INSPIRACJE lub linki URL - zbuduj design w oparciu o nie. Zachowaj 100% spójności ze Stroną Główną. Wstaw Assety (zdjęcia do osadzenia). Zwróć tylko HTML.`;
-    else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Optymalizuj obecny kod HTML podstrony ${activePage.name} (JSON-LD, tagi ALT). Odpowiedz w dymku co zmieniłeś i zwróć HTML.`;
+    else if (activeStep === 2) basePrompt = `Działaj jako Senior Dev. Wygeneruj innowacyjny kod HTML dla: ${activePage.name}. Jeśli załączyłem zdjęcia w sekcji INSPIRACJE lub linki URL - zbuduj design w oparciu o nie. Zachowaj 100% spójności ze Stroną Główną. Wstaw Assety (zdjęcia do osadzenia). Zwróć HTML.`;
+    else if (activeStep === 3) basePrompt = `Działaj jako Inżynier SEO. Optymalizuj obecny kod HTML podstrony ${activePage.name} (JSON-LD, tagi ALT). Odpowiedz w dymku co zmieniłeś i zwróć HTML. Podaj także sitemap.xml.`;
     else if (activeStep === 4) basePrompt = `Zmapuj projekt pod Joomla / SP Page Builder.`;
     else if (activeStep === 5) basePrompt = `Zmapuj projekt pod WordPress i Elementor.`;
     else if (activeStep === 6) basePrompt = `Przygotuj pełną dokumentację techniczną i instrukcję obsługi.`;
@@ -624,6 +621,13 @@ export default function Home() {
                 </div>
 
                 <div className="p-6 pt-2 border-t border-gray-100 dark:border-slate-800">
+                  {/* PRZYWRÓCONY PRZYCISK AUTOPILOTA */}
+                  <div className="flex gap-2 mb-4">
+                    <button onClick={applyAutopilot} className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold py-2 rounded-xl transition text-[10px] uppercase tracking-widest shadow-sm">
+                      ⚡ Autopilot (Załaduj Kontekst)
+                    </button>
+                  </div>
+                  
                   <textarea value={input} onChange={(e) => setInput(e.target.value)} className="w-full bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none dark:text-white" rows={3} placeholder={activeStep === 2 ? "Wpisz polecenie lub podaj linki (URL) do inspiracji..." : "Polecenie dla asystenta..."}></textarea>
                   <button onClick={sendMessage} disabled={isLoading} className={`w-full mt-4 text-white font-black py-4 rounded-2xl transition uppercase tracking-[0.2em] text-[10px] ${isLoading ? 'bg-gray-400' : 'bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/30'}`}>
                     {isLoading ? "Przetwarzanie..." : "Wyślij"}
@@ -657,10 +661,10 @@ export default function Home() {
                        )
                    ) : activeStep === 1 || activeStep === 4 || activeStep === 5 || activeStep === 6 ? (
                        <div className="space-y-6">
-                           {activeStep === 1 && Object.keys(documents).filter(k => ["doc1", "doc9", "doc10", "doc12"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych. Wpisz polecenie.</div>}
-                           {activeStep === 4 && Object.keys(documents).filter(k => ["doc2", "doc3", "doc7", "doc13"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych dla Joomla. Wpisz polecenie.</div>}
-                           {activeStep === 5 && Object.keys(documents).filter(k => ["doc14", "doc15"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych dla WordPress. Wpisz polecenie.</div>}
-                           {activeStep === 6 && Object.keys(documents).filter(k => ["doc16", "doc17"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak dokumentacji końcowej. Wpisz polecenie.</div>}
+                           {activeStep === 1 && Object.keys(documents).filter(k => ["doc1", "doc9", "doc10", "doc12"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych. Kliknij Autopilot i poproś o wygenerowanie strategii.</div>}
+                           {activeStep === 4 && Object.keys(documents).filter(k => ["doc2", "doc3", "doc7", "doc13"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych dla Joomla. Kliknij Autopilot.</div>}
+                           {activeStep === 5 && Object.keys(documents).filter(k => ["doc14", "doc15"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak danych dla WordPress. Kliknij Autopilot.</div>}
+                           {activeStep === 6 && Object.keys(documents).filter(k => ["doc16", "doc17"].includes(k)).length === 0 && <div className="bg-white p-12 text-center rounded-3xl">Brak dokumentacji końcowej. Kliknij Autopilot.</div>}
                            
                            {["doc1", "doc9", "doc10", "doc12", "doc2", "doc3", "doc7", "doc13", "doc14", "doc15", "doc16", "doc17"].map(key => {
                                if (!documents[key]) return null;
@@ -683,7 +687,7 @@ export default function Home() {
                        </div>
                    ) : (
                        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-xl p-12 min-h-[400px] flex items-center justify-center border border-gray-100 dark:border-slate-800">
-                          <p className="text-gray-400 uppercase tracking-widest text-center text-sm">Brak widoku. Wygeneruj kod.</p>
+                          <p className="text-gray-400 uppercase tracking-widest text-center text-sm">Brak widoku. Kliknij Autopilot lub wydaj polecenie.</p>
                        </div>
                    )}
                 </div>
