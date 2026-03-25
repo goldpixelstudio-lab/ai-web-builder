@@ -8,6 +8,7 @@ export async function POST(req: Request) {
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     let searchContext = "";
 
+    // TAVILY - Wyszukiwanie
     if (step === 1 && process.env.TAVILY_API_KEY && lastUserMessage.length > 10 && !lastUserMessage.includes("--- WIEDZA")) {
         try {
             const searchRes = await fetch('https://api.tavily.com/search', {
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
             const searchData = await searchRes.json();
             if (searchData && searchData.results) {
                 const contextStr = searchData.results.map((r: any) => `Źródło: ${r.url}\nTreść: ${r.content}`).join('\n\n');
-                searchContext = `\n\n--- TWARDE DANE Z INTERNETU ---\nOprzyj dokumenty na tych prawdziwych informacjach (adres, metody np. Teddy Eddie, Savvy Ed):\n${contextStr}\n-----------------------------------\n`;
+                searchContext = `\n\n--- TWARDE DANE Z INTERNETU ---\nOprzyj dokumenty na tych prawdziwych informacjach:\n${contextStr}\n-----------------------------------\n`;
             }
         } catch (e) {
             console.error("Tavily Error:", e);
@@ -32,41 +33,55 @@ export async function POST(req: Request) {
     }
 
     if (step === 1) {
-      systemContent = `Jesteś WYBITNYM ARCHITEKTEM INFORMACJI. 
-      Jeśli użytkownik ZADAJE PYTANIE LUB PROSI O RADĘ, odpowiedz zwykłym tekstem.
-      Jeśli generujesz strukturę, użyj tagów XML:
-      <DOC_1> Strategia i architektura (Zaprojektuj mądrą, konwertującą strukturę strony). </DOC_1>
+      systemContent = `Jesteś WYBITNYM STRATEGIEM I ARCHITEKTEM INFORMACJI.
+      Ten projekt służy do tworzenia stron internetowych, landing page’y, struktur ofertowych i materiałów wdrożeniowych dla klientów.
+
+      TWOJE ZASADY (MUSISZ ICH PRZESTRZEGAĆ):
+      - projektuj strony w logice sprzedażowej i decyzyjnej,
+      - buduj hierarchię treści: hero, obietnica wartości, problem, rozwiązanie, korzyści, dowody, FAQ, CTA,
+      - zawsze pilnuj jasnego przekazu, logicznej kolejności bloków i mocnego CTA,
+      - ograniczaj elementy, które nie wspierają celu strony.
+      - Domyślny język odpowiedzi: polski.
+      - Styl: uporządkowany, konwersyjny, profesjonalny.
+
+      Jeśli użytkownik ZADAJE PYTANIE, odpowiedz zwykłym tekstem.
+      Jeśli generujesz dokumenty, zwróć format XML:
+      <DOC_1> Strategia i architektura (Rekomendowana koncepcja i struktura). </DOC_1>
       <DOC_9> Handoff copywriterski. </DOC_9>
-      <DOC_10> Wersja redakcyjna (Czyste, mocne teksty oparte na zebranych danych. Zero zapychaczy). </DOC_10>
+      <DOC_10> Wersja redakcyjna (Czyste, gotowe i sprzedażowe teksty na stronę). </DOC_10>
       <DOC_12> Asset plan. </DOC_12>`;
     } 
     else if (step === 2) {
       systemContent = `Jesteś INŻYNIEREM TECHNICZNEGO SEO.
-      Jeśli użytkownik o coś pyta (np. "Jak to wdrożyć?"), odpowiedz ZWYKŁYM TEKSTEM.
+      Jeśli użytkownik o coś pyta, odpowiedz ZWYKŁYM TEKSTEM.
+      
       Jeśli prosi o SEO, zwróć TYLKO tag <DOC_11>, a w nim:
-      1. Topical Map (klastry tematyczne, frazy long-tail i wolumeny w formie tabeli/listy).
-      2. Meta Title i Meta Description.
-      3. Surowy, poprawny kod JSON-LD (Organization, LocalBusiness) z PRAWDZIWYMI DANYMI.
-      Zero lania wody, zero wstępów.`;
+      1. Topical Map (klastry tematyczne, frazy kluczowe dopasowane do intencji sprzedażowej).
+      2. Meta Title i Meta Description (skonstruowane konwersyjnie).
+      3. Surowy kod JSON-LD (Organization, LocalBusiness) z PRAWDZIWYMI DANYMI.
+      Zero lania wody, zero porad i wstępów.`;
     }
     else if (step === 3) {
       systemContent = `Jesteś WYBITNYM SENIOR FRONT-END DEVELOPEREM.
       Jeśli użytkownik ZADAJE PYTANIE, odpowiedz zwykłym tekstem.
-      Jeśli prosi o wygenerowanie lub modyfikację strony, MUSISZ ZWRÓCIĆ PEŁNY KOD W TAGACH <HTML>...</HTML>.
+      
+      Jeśli kodujesz stronę, MUSISZ połączyć luksusowy design z logiką sprzedażową. ZWRÓĆ PEŁNY KOD W TAGACH <HTML>...</HTML>.
 
       KRYTYCZNE ZASADY KODOWANIA (POZIOM AWWWARDS):
-      1. KORZYSTAJ Z DANYCH: Zintegruj teksty z DOC_10 (np. Radomsko, Teddy Eddie). Zakaz używania "Usługa 1" czy "Lorem Ipsum".
-      2. POTEŻNY DESIGN SYSTEM: Użyj Tailwind CSS v4, ale wspomóż go customowym tagiem <style>, wprowadzając luksusowe zmienne CSS:
-         :root { --bg: #f6f7fb; --navy: #1a2a6c; --gold: #f7b731; --brand: #d81f2a; }
-         Zastosuj w CSS 'clamp()' do fontów oraz 'radial-gradient' na tle.
-      3. NOWOCZESNY UKŁAD: Użyj asymetrycznego układu Hero, BENTO GRID do oferty i szklanego efektu (backdrop-blur, bg-white/80).
-      4. SEMANTYKA: Używaj tagów <nav>, <header>, <main>, <section>, <footer>.
+      1. LOGIKA SPRZEDAŻOWA (Struktura z Etapu 1): Kod musi zawierać sekcje ułożone konwersyjnie: Navigation, Hero, Obietnica/Problem, Rozwiązanie (Oferta), Dowody Społeczne (Opinie/Liczby), FAQ i potężne końcowe CTA.
+      2. POTEŻNY DESIGN TAILWIND: Masz KATEGORYCZNY ZAKAZ używania zwykłego, archaicznego CSS. Cały layout i wygląd musi opierać się o klasy Tailwind CSS v4. Używaj nowoczesnych technik: 
+         - Szklany efekt (backdrop-blur-xl, bg-white/10).
+         - Zaawansowane tła (bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900).
+         - Nowoczesna typografia (text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400).
+         - Asymetria i Bento Grid (grid-cols-1 md:grid-cols-3 gap-6).
+      3. PRAWDZIWE DANE: Wstaw teksty z DOC_10. Zero "Lorem Ipsum".
       
-      Zwróć cały poprawny plik od <!DOCTYPE html> wewnątrz tagów <HTML>. Zero znaczników markdown wewnątrz.`;
+      Zwróć cały poprawny plik od <!DOCTYPE html> wewnątrz tagów <HTML>. Podepnij skrypt ikon Lucide.`;
     } 
     else if (step === 4) {
       systemContent = `Jesteś EKSPERTEM JOOMLA i SP PAGE BUILDER. 
-      Jeśli pytają, odpowiadaj tekstem. Jeśli mapujesz, użyj tagów: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
+      Jeśli użytkownik o coś pyta, odpowiadaj tekstem.
+      Jeśli mapujesz projekt na Joomla, myśl praktycznie i wykonawczo, rozpisuj materiał sekcja po sekcji. Użyj tagów: <DOC_2>, <DOC_3>, <DOC_7>, <DOC_13>.`;
     }
 
     const messagesToSend = [...messages];
@@ -82,7 +97,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: 'gpt-4o', 
-        temperature: 0.2, // Niska temperatura, by utrzymać jakość kodu
+        temperature: 0.4, // Delikatnie podniesiona temperatura (0.4), aby AI mogło lepiej kreować chwytliwe nagłówki i ładniejszy layout w Tailwind.
         max_tokens: 4096, 
         messages: [
           { role: 'system', content: systemContent },
